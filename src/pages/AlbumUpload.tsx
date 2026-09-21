@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Bell, User, Menu, ArrowLeft, Images, Upload, Home, CalendarDays, Megaphone, UserCircle, CalendarCheck, Vote, BookOpen, Settings, Loader2 } from "lucide-react";
+import { Bell, User, Menu, ArrowLeft, Images, Upload, Home, CalendarDays, Megaphone, UserCircle, CalendarCheck, Vote, BookOpen, Settings, Loader2, X } from "lucide-react";
 import ComaLogo from "@/components/ComaLogo";
 import { apiFetch } from "@/api/client";
+import { uploadAlbumImages } from "@/api/s3";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface EventOption {
@@ -18,7 +19,7 @@ interface EventMonthlyResponse {
   rewardXp: number;
   location: string;
   category: string;
-  hostNickname: string;
+  hostname: string;
 }
 
 const AlbumUpload = () => {
@@ -27,9 +28,11 @@ const AlbumUpload = () => {
   const [eventId, setEventId] = useState<number | "">("");
   const [events, setEvents] = useState<EventOption[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const now = new Date();
@@ -40,16 +43,29 @@ const AlbumUpload = () => {
       .catch(() => {});
   }, []);
 
+  // 파일 선택 시 미리보기 URL 생성 (메모리 누수 방지)
+  useEffect(() => {
+    const urls = selectedFiles.map((f) => URL.createObjectURL(f));
+    setPreviewUrls(urls);
+    return () => urls.forEach((url) => URL.revokeObjectURL(url));
+  }, [selectedFiles]);
+
   const handleFileSelect = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.multiple = true;
-    input.accept = "image/*";
-    input.onchange = (e) => {
-      const files = (e.target as HTMLInputElement).files;
-      if (files) setSelectedFiles(Array.from(files).slice(0, 20));
-    };
-    input.click();
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) setSelectedFiles((prev) => {
+      const combined = [...prev, ...Array.from(files)];
+      return combined.slice(0, 20);
+    });
+    // 같은 파일 재선택 가능하도록 초기화
+    e.target.value = "";
+  };
+
+  const handleRemoveFile = (idx: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const handleBackClick = () => {
@@ -66,23 +82,30 @@ const AlbumUpload = () => {
       setUploadMessage("사진을 1장 이상 선택해 주세요.");
       return;
     }
+    if (eventId === "") {
+      setUploadMessage("관련 행사를 선택해 주세요.");
+      return;
+    }
 
     setUploading(true);
     setUploadMessage(null);
+
     try {
-      const photoUrls = await Promise.all(selectedFiles.map((file) => new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result as string);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      })));
+      const uploaded = await uploadAlbumImages(selectedFiles);
+      await apiFetch("/api/event-posts", {
+        method: "POST",
+        body: JSON.stringify({
+          title: title.trim(),
+          eventId,
+          photoUrls: uploaded.map((item) => item.url),
+        }),
+      });
 
-      const body: Record<string, unknown> = { title: title.trim(), photoUrls };
-      if (eventId !== "") body.eventId = eventId;
-
-      await apiFetch("/api/event-posts", { method: "POST", body: JSON.stringify(body) });
-      setUploadMessage("업로드가 완료되었습니다. 운영진 검토 후 앨범에 추가됩니다.");
-      setTimeout(() => navigate("/album"), 2000);
+      setUploadMessage("업로드가 완료되었습니다! 운영진 검토 후 앨범에 추가됩니다.");
+      setTitle("");
+      setEventId("");
+      setSelectedFiles([]);
+      setTimeout(() => navigate("/album"), 2500);
     } catch (e: unknown) {
       setUploadMessage(e instanceof Error ? e.message : "업로드에 실패했습니다.");
     } finally {
@@ -92,6 +115,16 @@ const AlbumUpload = () => {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F8FFFE" }}>
+      {/* 숨겨진 파일 입력 */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
       {showCancelModal && <>
         <div className="fixed inset-0 z-[100]" style={{ backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }} onClick={() => setShowCancelModal(false)} />
         <div className="fixed inset-0 z-[101] flex items-center justify-center px-8">
@@ -108,7 +141,7 @@ const AlbumUpload = () => {
 
       <header className="sticky top-0 z-50 px-4 py-3" style={{ backgroundColor: "#10B981" }}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2"><ComaLogo size="sm" /><span className="text-white font-bold text-lg">COMA-ROOM</span></div>
+          <button className="flex items-center gap-2" onClick={() => navigate("/main")}><ComaLogo size="sm" /><span className="text-white font-bold text-lg">COMA-ROOM</span></button>
           <div className="flex items-center gap-4">
             <button onClick={() => navigate("/notifications")}><Bell className="w-5 h-5 text-white" /></button>
             <button onClick={() => navigate("/profile")}><User className="w-5 h-5 text-white" /></button>
@@ -151,20 +184,40 @@ const AlbumUpload = () => {
             <input type="text" placeholder="예: 2026 신입생 OT" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-3 rounded-lg text-sm outline-none" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5", color: "#0F4C3A" }} />
           </div>
           <div className="mb-5">
-            <label className="block text-sm font-medium mb-2" style={{ color: "#0F4C3A" }}>관련 행사 (선택)</label>
+            <label className="block text-sm font-medium mb-2" style={{ color: "#0F4C3A" }}>관련 행사 <span style={{ color: "#EF4444" }}>*</span></label>
             <select value={eventId} onChange={(e) => setEventId(e.target.value === "" ? "" : Number(e.target.value))} className="w-full px-4 py-3 rounded-lg text-sm outline-none" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5", color: eventId === "" ? "#9CA3AF" : "#0F4C3A" }}>
-              <option value="">행사를 선택해 주세요 (선택사항)</option>
+              <option value="">행사를 선택해 주세요</option>
               {events.map((ev) => <option key={ev.eventId} value={ev.eventId}>{ev.title} ({ev.eventDate?.split("T")[0] ?? ev.eventDate})</option>)}
             </select>
           </div>
           <div>
-            <label className="flex items-center gap-1 text-sm font-medium mb-2" style={{ color: "#0F4C3A" }}><Images className="w-4 h-4" />사진 <span style={{ color: "#EF4444" }}>*</span></label>
-            <button onClick={handleFileSelect} className="w-full py-8 rounded-xl flex flex-col items-center justify-center gap-2" style={{ backgroundColor: "#FFFFFF", border: "2px dashed #D1FAE5" }}>
+            <div className="flex items-center justify-between mb-2">
+              <label className="flex items-center gap-1 text-sm font-medium" style={{ color: "#0F4C3A" }}><Images className="w-4 h-4" />사진 <span style={{ color: "#EF4444" }}>*</span></label>
+              {selectedFiles.length > 0 && (
+                <span className="text-xs" style={{ color: "#6B7280" }}>{selectedFiles.length}/20장</span>
+              )}
+            </div>
+            <button onClick={handleFileSelect} className="w-full py-6 rounded-xl flex flex-col items-center justify-center gap-2" style={{ backgroundColor: "#FFFFFF", border: "2px dashed #D1FAE5" }}>
               <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: "#D1FAE5" }}><Upload className="w-5 h-5" style={{ color: "#10B981" }} /></div>
-              <span className="font-medium text-sm" style={{ color: "#0F4C3A" }}>{selectedFiles.length > 0 ? `${selectedFiles.length}장 선택됨` : "사진 선택하기"}</span>
+              <span className="font-medium text-sm" style={{ color: "#0F4C3A" }}>{selectedFiles.length > 0 ? "사진 추가하기" : "사진 선택하기"}</span>
               <span className="text-xs" style={{ color: "#6B7280" }}>최대 20장까지 선택 가능</span>
             </button>
-            {selectedFiles.length > 0 && <div className="grid grid-cols-4 gap-2 mt-3">{selectedFiles.slice(0, 8).map((file, idx) => <div key={idx} className="aspect-square rounded-lg overflow-hidden" style={{ backgroundColor: "#F0FDF4" }}><img src={URL.createObjectURL(file)} alt={`preview-${idx}`} className="w-full h-full object-cover" /></div>)}{selectedFiles.length > 8 && <div className="aspect-square rounded-lg flex items-center justify-center text-xs font-medium" style={{ backgroundColor: "#D1FAE5", color: "#10B981" }}>+{selectedFiles.length - 8}</div>}</div>}
+            {previewUrls.length > 0 && (
+              <div className="grid grid-cols-4 gap-2 mt-3">
+                {previewUrls.map((url, idx) => (
+                  <div key={idx} className="relative aspect-square rounded-lg overflow-hidden" style={{ backgroundColor: "#F0FDF4" }}>
+                    <img src={url} alt={`preview-${idx}`} className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => handleRemoveFile(idx)}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center"
+                      style={{ backgroundColor: "rgba(0,0,0,0.55)" }}
+                    >
+                      <X className="w-3 h-3 text-white" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

@@ -71,7 +71,8 @@ type MainData = {
   statAttendanceCount: number;
   statEventCount: number;
   upcomingEvent: UpcomingEvent | null;
-  userName: string;
+  userName?: string;
+  name?: string;
   votePoll: VotePoll | null;
 };
 
@@ -104,7 +105,7 @@ const MainPage = () => {
   const attendanceCount = mainData?.statAttendanceCount ?? 0;
   const eventCount = mainData?.statEventCount ?? 0;
   const semester = mainData?.semester ?? "";
-  const userName = mainData?.userName ?? "";
+  const userName = mainData?.userName || mainData?.name || "";
   const remainingXp = mainData?.remainingXp ?? 0;
 
   // XP 프로그레스바 퍼센트 계산 (다음 등수까지 남은 XP 기준)
@@ -115,10 +116,10 @@ const MainPage = () => {
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F8FFFE" }}>
       <header className="sticky top-0 z-50 flex items-center justify-between px-4 py-3" style={{ backgroundColor: "#FFFFFF", borderBottom: "1px solid #D1FAE5" }}>
-        <div className="flex items-center gap-2">
+        <button className="flex items-center gap-2" onClick={() => navigate("/main")}>
           <img src={comaLogo} alt="COMA Logo" className="w-8 h-8 rounded-lg" />
           <span className="font-bold text-lg" style={{ color: "#0F4C3A" }}>COMA-ROOM</span>
-        </div>
+        </button>
         <div className="flex items-center gap-4">
           <button onClick={() => navigate("/notifications")}>
             <Bell className="w-5 h-5" style={{ color: "#6B7280" }} />

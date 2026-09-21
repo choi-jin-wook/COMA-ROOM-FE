@@ -14,6 +14,10 @@ interface EventPost {
   createdAt: string;
 }
 
+interface EventPostPage {
+  content: EventPost[];
+}
+
 const ITEMS_PER_PAGE = 5;
 
 const Album = () => {
@@ -25,8 +29,8 @@ const Album = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    apiFetch<EventPost[]>("/api/event-posts")
-      .then((data) => setPosts(data.filter((p) => p.approvalStatus === "APPROVED")))
+    apiFetch<EventPostPage>("/api/event-posts?page=0&size=100&sort=createdAt,desc")
+      .then((data) => setPosts((data?.content ?? []).filter((p) => p.approvalStatus === "APPROVED")))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
@@ -40,7 +44,7 @@ const Album = () => {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F8FFFE" }}>
       <header className="sticky top-0 z-50 px-4 py-3" style={{ backgroundColor: "#10B981" }}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2"><ComaLogo size="sm" /><span className="text-white font-bold text-lg">COMA-ROOM</span></div>
+          <button className="flex items-center gap-2" onClick={() => navigate("/main")}><ComaLogo size="sm" /><span className="text-white font-bold text-lg">COMA-ROOM</span></button>
           <div className="flex items-center gap-4">
             <button onClick={() => navigate("/notifications")}><Bell className="w-5 h-5 text-white" /></button>
             <button onClick={() => navigate("/profile")}><User className="w-5 h-5 text-white" /></button>

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { apiFetch } from "@/api/client";
 import { Bell, User, Menu, Users, Sparkles, Search, Edit, Trash2, ChevronLeft, ChevronRight, LayoutDashboard, ClipboardCheck, Megaphone, UserPlus, Plus, Minus } from "lucide-react";
 import ComaLogo from "@/components/ComaLogo";
@@ -58,6 +59,7 @@ interface MemberPageData {
 
 const Admin_Members = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [members, setMembers] = useState<Member[]>([]);
   const [pageData, setPageData] = useState<Pick<MemberPageData, "totalMember" | "activateMember" | "averageXp" | "totalPages"> | null>(null);
   const [loading, setLoading] = useState(true);
@@ -202,10 +204,10 @@ const Admin_Members = () => {
       {/* Header */}
       <header className="sticky top-0 z-50 px-4 py-3" style={{ backgroundColor: '#10B981' }}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <button className="flex items-center gap-2" onClick={() => navigate("/admin")}>
             <ComaLogo size="sm" />
             <span className="text-white font-bold text-lg">COMA-ROOM</span>
-          </div>
+          </button>
           <div className="flex items-center gap-4">
             <button onClick={() => navigate('/admin/notice')}>
               <Bell className="w-5 h-5 text-white" />
@@ -223,9 +225,9 @@ const Admin_Members = () => {
                 align="end" 
                 className="w-32 bg-white border border-gray-200 shadow-lg rounded-lg z-[100]"
               >
-                <DropdownMenuItem 
+                <DropdownMenuItem
                   className="flex items-center gap-2 cursor-pointer hover:bg-gray-50"
-                  onClick={() => navigate('/admin')}
+                  onClick={() => { logout(); navigate("/"); }}
                 >
                   <User className="w-4 h-4" style={{ color: '#6B7280' }} />
                   <span style={{ color: '#0F4C3A' }}>로그아웃</span>

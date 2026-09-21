@@ -80,10 +80,10 @@ const Study = () => {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F8FFFE" }}>
       <header className="sticky top-0 z-50 px-4 py-3" style={{ backgroundColor: "#10B981" }}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <button className="flex items-center gap-2" onClick={() => navigate("/main")}>
             <ComaLogo size="sm" />
             <span className="text-white font-bold text-lg">COMA-ROOM</span>
-          </div>
+          </button>
           <div className="flex items-center gap-4">
             <button onClick={() => navigate("/notifications")}><Bell className="w-5 h-5 text-white" /></button>
             <button onClick={() => navigate("/profile")}><User className="w-5 h-5 text-white" /></button>
@@ -136,7 +136,7 @@ const Study = () => {
           {(activeTab === "my" ? myStudies : activeTab === "join" ? joinableStudies : completedStudies).length === 0 && <p className="rounded-2xl border bg-card p-8 text-center text-sm text-muted-foreground">{activeTab === "my" ? "참여 중인 스터디가 없습니다." : activeTab === "join" ? "참여 가능한 스터디가 없습니다." : "완료한 스터디가 없습니다."}</p>}
           {activeTab === "join"
             ? joinableStudies.map((study) => (
-                <div key={study.id} className="rounded-2xl p-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}>
+                <div key={study.id} onClick={() => navigate("/study/" + study.id + "/weeks?role=member")} className="cursor-pointer rounded-2xl p-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}>
                   <div className="flex items-start justify-between mb-1">
                     <h3 className="font-bold text-lg" style={{ color: "#0F4C3A" }}>{study.title}</h3>
                     <span className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: study.level === "초급" ? "#D1FAE5" : "#FEF3C6", color: study.level === "초급" ? "#007A55" : "#BB4D00" }}>{study.level}</span>
@@ -153,7 +153,7 @@ const Study = () => {
               ))
             : activeTab === "completed"
               ? completedStudies.map((study) => (
-                  <div key={study.id} className="rounded-2xl p-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}>
+                  <div key={study.id} onClick={() => navigate("/study/" + study.id + "/weeks?role=member")} className="cursor-pointer rounded-2xl p-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}>
                     <div className="flex items-center gap-2 mb-1"><h3 className="font-bold text-lg" style={{ color: "#0F4C3A" }}>{study.title}</h3><CheckCircle2 className="w-5 h-5" style={{ color: "#10B981" }} /></div>
                     <p className="text-sm mb-4" style={{ color: "#6B7280" }}>{study.completedDate}</p>
                     <div className="grid grid-cols-3 gap-4 text-center">
@@ -164,7 +164,7 @@ const Study = () => {
                   </div>
                 ))
               : myStudies.map((study) => (
-                  <div key={study.id} className="rounded-2xl p-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}>
+                  <div key={study.id} onClick={() => navigate("/study/" + study.id + "/weeks?role=" + (study.role === "리더" ? "leader" : "member"))} className="cursor-pointer rounded-2xl p-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}>
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <h3 className="font-bold" style={{ color: "#0F4C3A" }}>{study.title}</h3>
@@ -207,3 +207,4 @@ const Study = () => {
 };
 
 export default Study;
+

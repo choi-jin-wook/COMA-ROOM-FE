@@ -17,7 +17,9 @@ import {
   Monitor,
   CalendarCheck,
   BookOpen,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import ComaLogo from "@/components/ComaLogo";
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -30,7 +32,8 @@ import {
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { darkMode, compactMode, setDarkMode, setCompactMode } = useTheme();
+  const { darkMode, setDarkMode } = useTheme();
+  const { logout } = useAuth();
   const [eventNotification, setEventNotification] = useState(true);
   const [voteNotification, setVoteNotification] = useState(true);
   const [attendanceNotification, setAttendanceNotification] = useState(true);
@@ -46,10 +49,10 @@ const Settings = () => {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F8FFFE" }}>
       <header className="sticky top-0 z-50 px-4 py-3" style={{ backgroundColor: "#10B981" }}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <button className="flex items-center gap-2" onClick={() => navigate("/main")}>
             <ComaLogo size="sm" />
             <span className="text-white font-bold text-lg">COMA-ROOM</span>
-          </div>
+          </button>
           <div className="flex items-center gap-4">
             <button onClick={() => navigate("/notifications")}>
               <Bell className="w-5 h-5 text-white" />
@@ -183,14 +186,22 @@ const Settings = () => {
               </div>
               <Switch checked={darkMode} onCheckedChange={setDarkMode} className="data-[state=checked]:bg-[#10B981]" />
             </div>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium" style={{ color: "#0F4C3A" }}>컴팩트 모드</p>
-                <p className="text-sm" style={{ color: "#6B7280" }}>화면을 더 촘촘하게 표시합니다</p>
-              </div>
-              <Switch checked={compactMode} onCheckedChange={setCompactMode} className="data-[state=checked]:bg-[#10B981]" />
-            </div>
           </div>
+        </div>
+
+        <div className="rounded-2xl p-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}>
+          <div className="flex items-center gap-2 mb-2">
+            <LogOut className="w-5 h-5" style={{ color: "#E7000B" }} />
+            <h2 className="font-bold" style={{ color: "#E7000B" }}>계정</h2>
+          </div>
+          <button
+            className="w-full py-3 rounded-xl flex items-center justify-center gap-2 font-medium"
+            style={{ backgroundColor: "#FFC9C9", color: "#E7000B" }}
+            onClick={() => { logout(); navigate("/"); }}
+          >
+            <LogOut className="w-4 h-4" />
+            로그아웃
+          </button>
         </div>
       </main>
 

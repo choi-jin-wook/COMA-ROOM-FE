@@ -36,7 +36,7 @@ interface EventItem {
   rewardXp: number;
   location: string;
   category: string;
-  hostNickname: string;
+  hostname: string;
 }
 
 const CATEGORY_MAP: Record<string, string> = {
@@ -93,10 +93,10 @@ const ScheduleList = () => {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F8FFFE" }}>
       <header className="sticky top-0 z-50 px-4 py-3" style={{ backgroundColor: "#10B981" }}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <button className="flex items-center gap-2" onClick={() => navigate("/main")}>
             <ComaLogo size="sm" />
             <span className="text-white font-bold text-lg">COMA-ROOM</span>
-          </div>
+          </button>
           <div className="flex items-center gap-4">
             <button onClick={() => navigate("/notifications")}>
               <Bell className="w-5 h-5 text-white" />
@@ -112,38 +112,38 @@ const ScheduleList = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="end"
-                className="w-32 bg-white border border-gray-200 shadow-lg rounded-lg z-[100]"
+                className="w-32 bg-white dark:bg-[#152A20] border border-gray-200 dark:border-[#243F32] shadow-lg rounded-lg z-[100]"
               >
                 <DropdownMenuItem
-                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-50"
+                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#1E3A2B]"
                   onClick={() => navigate("/schedule")}
                 >
                   <CalendarCheck className="w-4 h-4" style={{ color: "#6B7280" }} />
                   <span style={{ color: "#0F4C3A" }}>일정</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-50"
+                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#1E3A2B]"
                   onClick={() => navigate("/vote-list")}
                 >
                   <Vote className="w-4 h-4" style={{ color: "#6B7280" }} />
                   <span style={{ color: "#0F4C3A" }}>투표</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-50"
+                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#1E3A2B]"
                   onClick={() => navigate("/study")}
                 >
                   <BookOpen className="w-4 h-4" style={{ color: "#6B7280" }} />
                   <span style={{ color: "#0F4C3A" }}>스터디</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-50"
+                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#1E3A2B]"
                   onClick={() => navigate("/album")}
                 >
                   <Images className="w-4 h-4" style={{ color: "#6B7280" }} />
                   <span style={{ color: "#0F4C3A" }}>앨범</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-50"
+                  className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#1E3A2B]"
                   onClick={() => navigate("/settings")}
                 >
                   <Settings className="w-4 h-4" style={{ color: "#6B7280" }} />
@@ -248,9 +248,9 @@ const ScheduleList = () => {
                         <Sparkles className="w-3 h-3" /> +{event.rewardXp}XP
                       </span>
                     </div>
-                    {event.hostNickname && (
+                    {event.hostname && (
                       <p className="text-xs" style={{ color: "#90A1B9" }}>
-                        주최: {event.hostNickname}
+                        주최: {event.hostname}
                       </p>
                     )}
                   </div>

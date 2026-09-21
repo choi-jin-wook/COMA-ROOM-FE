@@ -40,15 +40,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// 개별 이벤트 출석 내역 타입
+// 개별 이벤트 출석 내역 타입 (백엔드 응답 기준)
 interface AttendanceHistoryItem {
-  eventId: number;
   title: string;
-  eventDate: string;
+  scheduledDate: string;          // 행사 예정일
   location: string;
-  checkedInAt: string | null; // 출석 시각 (결석이면 null)
-  isAttended: boolean;        // 출석 여부
-  rewardXp: number;           // 출석 시 획득 XP
+  actualArrivalTime: string | null; // 실제 출석 시각 (결석이면 null)
+  status: string;                 // "출석" | "결석"
+  rewardXp: number;
 }
 
 // GET /api/member/main/attendance 응답 타입
@@ -90,10 +89,10 @@ const Attendance = () => {
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F8FFFE" }}>
       <header className="flex items-center justify-between px-4 py-3" style={{ backgroundColor: "#FFFFFF" }}>
-        <div className="flex items-center gap-2">
+        <button className="flex items-center gap-2" onClick={() => navigate("/main")}>
           <ComaLogo size="sm" />
           <span className="font-bold text-lg" style={{ color: "#0F4C3A" }}>COMA-ROOM</span>
-        </div>
+        </button>
         <div className="flex items-center gap-4">
           <button onClick={() => navigate("/notifications")}>
             <Bell className="w-5 h-5" style={{ color: "#6B7280" }} />
@@ -221,40 +220,44 @@ const Attendance = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {history.map((item) => (
-                    <div key={item.eventId} className="rounded-xl p-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}>
-                      <div className="flex items-start justify-between mb-2">
-                        <h3 className="font-semibold" style={{ color: "#0F4C3A" }}>{item.title}</h3>
-                        <div className="flex items-center gap-2">
-                          {/* 출석/결석 배지 */}
-                          {item.isAttended ? (
-                            <span className="px-2 py-1 rounded-full text-xs flex items-center gap-1" style={{ backgroundColor: "#D1FAE5", color: "#10B981" }}>
-                              <CheckCircle className="w-3 h-3" /> 출석
-                            </span>
-                          ) : (
-                            <span className="px-2 py-1 rounded-full text-xs flex items-center gap-1" style={{ backgroundColor: "#FFE4E6", color: "#C70036" }}>
-                              <XCircle className="w-3 h-3" /> 결석
-                            </span>
-                          )}
-                          {/* 출석 시 획득 XP 표시 */}
-                          {item.rewardXp > 0 && (
-                            <span className="text-xs font-medium" style={{ color: "#10B981" }}>+{item.rewardXp} XP</span>
-                          )}
+                  {history.map((item, index) => {
+                    const isAttended = item.status === "출석";
+                    const dateStr = item.scheduledDate
+                      ? item.scheduledDate.replace("T", " ").slice(0, 16)
+                      : "-";
+                    return (
+                      <div key={index} className="rounded-xl p-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}>
+                        <div className="flex items-start justify-between mb-2">
+                          <h3 className="font-semibold" style={{ color: "#0F4C3A" }}>{item.title}</h3>
+                          <div className="flex items-center gap-2">
+                            {isAttended ? (
+                              <span className="px-2 py-1 rounded-full text-xs flex items-center gap-1" style={{ backgroundColor: "#D1FAE5", color: "#10B981" }}>
+                                <CheckCircle className="w-3 h-3" /> 출석
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 rounded-full text-xs flex items-center gap-1" style={{ backgroundColor: "#FFE4E6", color: "#C70036" }}>
+                                <XCircle className="w-3 h-3" /> 결석
+                              </span>
+                            )}
+                            {item.rewardXp > 0 && (
+                              <span className="text-xs font-medium" style={{ color: "#10B981" }}>+{item.rewardXp} XP</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="space-y-1 text-sm" style={{ color: "#6B7280" }}>
+                          <p className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4" /> {dateStr}
+                          </p>
+                          <p className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4" /> {item.location || "-"}
+                          </p>
+                          <p className="flex items-center gap-2">
+                            <Clock className="w-4 h-4" /> 출석 시간: {item.actualArrivalTime || "-"}
+                          </p>
                         </div>
                       </div>
-                      <div className="space-y-1 text-sm" style={{ color: "#6B7280" }}>
-                        <p className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4" /> {item.eventDate}
-                        </p>
-                        <p className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4" /> {item.location || "-"}
-                        </p>
-                        <p className="flex items-center gap-2">
-                          <Clock className="w-4 h-4" /> 출석 시간: {item.checkedInAt || "-"}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </section>

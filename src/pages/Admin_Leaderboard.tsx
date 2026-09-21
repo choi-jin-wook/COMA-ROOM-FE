@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Bell,
   User,
@@ -44,6 +45,7 @@ interface LeaderboardResponse {
 
 const Admin_Leaderboard = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,10 +78,10 @@ const Admin_Leaderboard = () => {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F8FFFE" }}>
       <header className="sticky top-0 z-50 px-4 py-3" style={{ backgroundColor: "#10B981" }}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <button className="flex items-center gap-2" onClick={() => navigate("/admin")}>
             <ComaLogo size="sm" />
             <span className="text-white font-bold text-lg">COMA-ROOM</span>
-          </div>
+          </button>
           <div className="flex items-center gap-4">
             <button onClick={() => navigate("/admin/notice")}>
               <Bell className="w-5 h-5 text-white" />
@@ -97,6 +99,10 @@ const Admin_Leaderboard = () => {
                 <DropdownMenuItem className="flex items-center gap-2 cursor-pointer hover:bg-gray-50" onClick={() => navigate("/admin")}>
                   <User className="w-4 h-4" style={{ color: "#6B7280" }} />
                   <span style={{ color: "#0F4C3A" }}>관리자 홈</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-2 cursor-pointer hover:bg-gray-50" onClick={() => { logout(); navigate("/"); }}>
+                  <User className="w-4 h-4" style={{ color: "#6B7280" }} />
+                  <span style={{ color: "#0F4C3A" }}>로그아웃</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

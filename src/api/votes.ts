@@ -67,3 +67,9 @@ export function closeVote(voteId: number) {
     method: "PATCH",
   });
 }
+
+export function cancelVote(voteId: number) {
+  return apiFetch<void>(`/api/vote/votes/${voteId}/participate`, {
+    method: "DELETE",
+  });
+}

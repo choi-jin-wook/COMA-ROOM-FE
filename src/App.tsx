@@ -23,8 +23,6 @@ import Notice from "./pages/Notice";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import Study from "./pages/Study";
-import StudyLMS from "./pages/StudyLMS";
-import Admin_Study_Create from "./pages/Admin_Study_Create";
 import Admin_Event_Attendance from "./pages/Admin_Event_Attendance";
 import Leaderboard from "./pages/Leaderboard";
 import Admin_MainPage from "./pages/Admin_MainPage";
@@ -39,9 +37,17 @@ import Admin_Leaderboard from "./pages/Admin_Leaderboard";
 import Admin_Events from "./pages/Admin_Events";
 import Admin_Event_Detail from "./pages/Admin_Event_Detail";
 import Admin_Event_Form from "./pages/Admin_Event_Form";
-import Admin_AlbumApproval from "./pages/Admin_AlbumApproval";
-import Admin_AlbumApproval_Detail from "./pages/Admin_AlbumApproval_Detail";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/ProtectedRoute";
+
+import { AdminAlbumApprovalDetail, AdminAlbumApprovalList } from "./pages/Admin_AlbumApproval";
+import {
+  AdminStudyCreate,
+  StudyAttendanceCreate,
+  StudyWeekDetail,
+  StudyWeekPlanCreate,
+  StudyWeeks,
+} from "./pages/StudyLms";
 
 const queryClient = new QueryClient();
 
@@ -57,43 +63,43 @@ const App = () => (
               <BrowserRouter>
                 <Routes>
               <Route path="/" element={<Login />} />
-              <Route path="/main" element={<MainPage_1 />} />
-              <Route path="/attendance" element={<Attendance />} />
-              <Route path="/attendance/verify" element={<AttendanceVerify />} />
-              <Route path="/schedule" element={<Schedule />} />
-              <Route path="/schedule-list" element={<ScheduleList />} />
-              <Route path="/vote-list" element={<VoteList />} />
-              <Route path="/album" element={<Album />} />
-              <Route path="/album/:id" element={<AlbumDetail />} />
-              <Route path="/album/upload" element={<AlbumUpload />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/xp-details" element={<XPDetails />} />
-              <Route path="/notice" element={<Notice />} />
-              <Route path="/notifications" element={<Notifications />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="/study" element={<Study />} />
-              <Route path="/study/:id/weeks" element={<StudyLMS />} />
-              <Route path="/study/:id/weeks/new" element={<StudyLMS view="create" />} />
-              <Route path="/study/:id/weeks/:week" element={<StudyLMS view="detail" />} />
-              <Route path="/study/:id/weeks/:week/attendance" element={<StudyLMS view="attendance" />} />
-              <Route path="/leaderboard" element={<Leaderboard />} />
-              <Route path="/admin" element={<Admin_MainPage />} />
-              <Route path="/admin/members" element={<Admin_Members />} />
-              <Route path="/admin/xp" element={<Admin_XP />} />
-              <Route path="/admin/xp/grant" element={<Admin_XP_Grant />} />
-              <Route path="/admin/attendance" element={<Admin_Attendance />} />
-              <Route path="/admin/vote" element={<Admin_Vote />} />
-              <Route path="/admin/vote/create" element={<Admin_Vote_Create />} />
-              <Route path="/admin/notice" element={<Admin_Notice />} />
-              <Route path="/admin/leaderboard" element={<Admin_Leaderboard />} />
-              <Route path="/admin/events" element={<Admin_Events />} />
-              <Route path="/admin/events/new" element={<Admin_Event_Form />} />
-              <Route path="/admin/events/:id" element={<Admin_Event_Detail />} />
-              <Route path="/admin/events/:id/edit" element={<Admin_Event_Form />} />
-              <Route path="/admin/events/:id/attendance" element={<Admin_Event_Attendance />} />
-              <Route path="/admin/studies/new" element={<Admin_Study_Create />} />
-              <Route path="/admin/albums" element={<Admin_AlbumApproval />} />
-              <Route path="/admin/albums/:id" element={<Admin_AlbumApproval_Detail />} />
+              <Route path="/main" element={<ProtectedRoute><MainPage_1 /></ProtectedRoute>} />
+              <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
+              <Route path="/attendance/verify" element={<ProtectedRoute><AttendanceVerify /></ProtectedRoute>} />
+              <Route path="/schedule" element={<ProtectedRoute><Schedule /></ProtectedRoute>} />
+              <Route path="/schedule-list" element={<ProtectedRoute><ScheduleList /></ProtectedRoute>} />
+              <Route path="/vote-list" element={<ProtectedRoute><VoteList /></ProtectedRoute>} />
+              <Route path="/album" element={<ProtectedRoute><Album /></ProtectedRoute>} />
+              <Route path="/album/:id" element={<ProtectedRoute><AlbumDetail /></ProtectedRoute>} />
+              <Route path="/album/upload" element={<ProtectedRoute><AlbumUpload /></ProtectedRoute>} />
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/xp-details" element={<ProtectedRoute><XPDetails /></ProtectedRoute>} />
+              <Route path="/notice" element={<ProtectedRoute><Notice /></ProtectedRoute>} />
+              <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+              <Route path="/study" element={<ProtectedRoute><Study /></ProtectedRoute>} />
+              <Route path="/study/:studyId/weeks" element={<ProtectedRoute><StudyWeeks /></ProtectedRoute>} />
+              <Route path="/study/:studyId/weeks/new" element={<ProtectedRoute><StudyWeekPlanCreate /></ProtectedRoute>} />
+              <Route path="/study/:studyId/weeks/:week" element={<ProtectedRoute><StudyWeekDetail /></ProtectedRoute>} />
+              <Route path="/study/:studyId/weeks/:week/attendance/new" element={<ProtectedRoute><StudyAttendanceCreate /></ProtectedRoute>} />
+              <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin_MainPage /></ProtectedRoute>} />
+              <Route path="/admin/members" element={<ProtectedRoute requireAdmin><Admin_Members /></ProtectedRoute>} />
+              <Route path="/admin/xp" element={<ProtectedRoute requireAdmin><Admin_XP /></ProtectedRoute>} />
+              <Route path="/admin/xp/grant" element={<ProtectedRoute requireAdmin><Admin_XP_Grant /></ProtectedRoute>} />
+              <Route path="/admin/attendance" element={<ProtectedRoute requireAdmin><Admin_Attendance /></ProtectedRoute>} />
+              <Route path="/admin/vote" element={<ProtectedRoute requireAdmin><Admin_Vote /></ProtectedRoute>} />
+              <Route path="/admin/vote/create" element={<ProtectedRoute requireAdmin><Admin_Vote_Create /></ProtectedRoute>} />
+              <Route path="/admin/notice" element={<ProtectedRoute requireAdmin><Admin_Notice /></ProtectedRoute>} />
+              <Route path="/admin/leaderboard" element={<ProtectedRoute requireAdmin><Admin_Leaderboard /></ProtectedRoute>} />
+              <Route path="/admin/events" element={<ProtectedRoute requireAdmin><Admin_Events /></ProtectedRoute>} />
+              <Route path="/admin/events/new" element={<ProtectedRoute requireAdmin><Admin_Event_Form /></ProtectedRoute>} />
+              <Route path="/admin/events/:id" element={<ProtectedRoute requireAdmin><Admin_Event_Detail /></ProtectedRoute>} />
+              <Route path="/admin/events/:id/edit" element={<ProtectedRoute requireAdmin><Admin_Event_Form /></ProtectedRoute>} />
+              <Route path="/admin/events/:id/attendance" element={<ProtectedRoute requireAdmin><Admin_Event_Attendance /></ProtectedRoute>} />
+              <Route path="/admin/albums" element={<ProtectedRoute requireAdmin><AdminAlbumApprovalList /></ProtectedRoute>} />
+              <Route path="/admin/albums/:postId" element={<ProtectedRoute requireAdmin><AdminAlbumApprovalDetail /></ProtectedRoute>} />
+              <Route path="/admin/studies/new" element={<ProtectedRoute requireAdmin><AdminStudyCreate /></ProtectedRoute>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
                 </Routes>

@@ -196,10 +196,10 @@ const AttendanceVerify = () => {
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F8FFFE" }}>
       <header className="flex items-center justify-between px-4 py-3" style={{ backgroundColor: "#FFFFFF" }}>
-        <div className="flex items-center gap-2">
+        <button className="flex items-center gap-2" onClick={() => navigate("/main")}>
           <ComaLogo size="sm" />
           <span className="font-bold text-lg" style={{ color: "#0F4C3A" }}>COMA-ROOM</span>
-        </div>
+        </button>
         <div className="flex items-center gap-4">
           <button onClick={() => navigate("/notifications")}>
             <Bell className="w-5 h-5" style={{ color: "#6B7280" }} />

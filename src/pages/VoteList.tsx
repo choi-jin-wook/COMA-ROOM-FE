@@ -39,6 +39,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { apiFetch } from "@/api/client";
+import { cancelVote as apiCancelVote } from "@/api/votes";
 
 // 투표 옵션 (각 옵션의 ID, 내용, 득표수)
 type ApiVoteOption = {
@@ -54,6 +55,7 @@ type ApiVote = {
   status: "IN_PROGRESS" | "CLOSED" | "COMPLETED";
   isMultiple: boolean; // true: 복수 선택 가능
   options: ApiVoteOption[];
+  voted?: boolean; // 현재 사용자의 투표 여부 (서버 제공)
 };
 
 const VoteList = () => {
@@ -74,6 +76,9 @@ const VoteList = () => {
   // 이미 투표 완료한 voteId 목록 (클라이언트 측 관리)
   const [votedIds, setVotedIds] = useState<number[]>([]);
 
+  // 취소 처리 중인 voteId
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+
   // 현재 페이지 번호 (0-indexed)
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -90,6 +95,12 @@ const VoteList = () => {
       setActiveVotesApi(activeData ?? []);
       setEndedVotesApi(endedData ?? []);
       setTotalPages(Math.max(1, endedData?.length ? page + 2 : page + 1));
+
+      // 서버 응답의 voted 필드로 이미 투표한 항목 초기화
+      const alreadyVoted = (activeData ?? [])
+        .filter((v) => v.voted)
+        .map((v) => v.voteId);
+      setVotedIds((prev) => Array.from(new Set([...prev, ...alreadyVoted])));
     } catch (e) {
       console.error("투표 목록 조회 실패:", e);
     } finally {
@@ -124,6 +135,22 @@ const VoteList = () => {
     });
   };
 
+  // 투표 취소
+  // DELETE /api/vote/votes/{voteId}/participate
+  const handleCancelVote = async (voteId: number) => {
+    setCancellingId(voteId);
+    try {
+      await apiCancelVote(voteId);
+      setVotedIds((prev) => prev.filter((id) => id !== voteId));
+      await fetchVotes();
+    } catch (e) {
+      console.error("투표 취소 실패:", e);
+      alert("투표 취소에 실패했습니다.");
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
   // 투표 제출
   // POST /api/vote/votes/{voteId}/participate
   // 성공 시: votedIds에 추가, 서버 응답으로 해당 투표 결과 업데이트
@@ -148,30 +175,14 @@ const VoteList = () => {
     }
   };
 
-  // 투표 취소
-  // DELETE /api/vote/votes/{voteId}/participate
-  // 성공 시: votedIds에서 제거, 투표 목록 재조회로 득표 결과 갱신
-  const handleVoteCancel = async (vote: ApiVote) => {
-    try {
-      await apiFetch(`/api/vote/votes/${vote.voteId}/participate`, {
-        method: "DELETE",
-      });
-
-      setVotedIds((prev) => prev.filter((id) => id !== vote.voteId));
-      await fetchVotes();
-    } catch (e) {
-      console.error("투표 취소 실패:", e);
-    }
-  };
-
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F8FFFE" }}>
       <header className="sticky top-0 z-50 px-4 py-3" style={{ backgroundColor: "#10B981" }}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <button className="flex items-center gap-2" onClick={() => navigate("/main")}>
             <ComaLogo size="sm" />
             <span className="text-white font-bold text-lg">COMA-ROOM</span>
-          </div>
+          </button>
           <div className="flex items-center gap-4">
             <button onClick={() => navigate("/notifications")}>
               <Bell className="w-5 h-5 text-white" />
@@ -376,18 +387,19 @@ const VoteList = () => {
                         </span>
                       </div>
                       {isVoted ? (
-                        // 투표 완료 상태 표시 + 취소 버튼
+                        // 투표 완료 상태 + 취소 버튼
                         <div className="flex items-center gap-2">
-                          <button
-                            className="px-2 py-1 rounded-lg text-xs font-medium"
-                            style={{ backgroundColor: "rgba(239, 68, 68, 0.1)", color: "#EF4444" }}
-                            onClick={() => handleVoteCancel(vote)}
-                          >
-                            취소
-                          </button>
                           <span className="flex items-center gap-1 text-sm font-medium" style={{ color: "#10B981" }}>
                             <CheckCircle className="w-4 h-4" /> 투표 완료
                           </span>
+                          <button
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50"
+                            style={{ backgroundColor: "#FFC9C9", color: "#E7000B" }}
+                            disabled={cancellingId === vote.voteId}
+                            onClick={() => handleCancelVote(vote.voteId)}
+                          >
+                            {cancellingId === vote.voteId ? "취소 중..." : "취소"}
+                          </button>
                         </div>
                       ) : (
                         // 투표하기 버튼 - 옵션 미선택 시 비활성화
@@ -513,6 +525,7 @@ const VoteList = () => {
           <ul className="text-sm space-y-1" style={{ color: "#0F4C3A" }}>
             <li>각 투표에 참여하면 2 XP를 받을 수 있습니다.</li>
             <li>한 투표에는 한 번만 참여할 수 있습니다.</li>
+            <li>투표 완료 후 취소 버튼으로 재투표할 수 있습니다.</li>
             <li>마감 전까지 투표를 완료해 주세요.</li>
           </ul>
         </div>

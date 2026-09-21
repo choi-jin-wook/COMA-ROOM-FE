@@ -10,6 +10,7 @@ export type User = {
 type AuthState = {
   user: User | null;
   accessToken: string | null;
+  isInitialized: boolean;
   login: (payload: { user: User; accessToken: string; refreshToken?: string }) => void;
   logout: () => void;
 };
@@ -31,6 +32,7 @@ function safeJsonParse<T>(value: string | null): T | null {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -46,9 +48,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (storedUser) {
       setUser(storedUser);
     } else {
-      // 깨진 값이면 제거해서 다음부터 안 터지게
       localStorage.removeItem("user");
     }
+
+    setIsInitialized(true);
   }, []);
 
   const login: AuthState["login"] = ({ user, accessToken, refreshToken }) => {
@@ -71,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem("name");
   };
 
-  const value = useMemo(() => ({ user, accessToken, login, logout }), [user, accessToken]);
+  const value = useMemo(() => ({ user, accessToken, isInitialized, login, logout }), [user, accessToken, isInitialized]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 

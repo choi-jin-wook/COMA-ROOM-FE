@@ -106,8 +106,10 @@ const NoticePage = () => {
   useEffect(() => {
     apiFetch<NoticeResponse>("/api/notice?page=0")
       .then((res) => {
-        const pinned = (res.pinnedNoticeList ?? []).map((notice) => mapNotice(notice, true));
-        const opened = (res.openedNoticeList ?? []).map((notice) => mapNotice(notice, false));
+        const sortDesc = (a: NoticeItem, b: NoticeItem) =>
+          b.noticeId - a.noticeId;
+        const pinned = (res.pinnedNoticeList ?? []).map((notice) => mapNotice(notice, true)).sort(sortDesc);
+        const opened = (res.openedNoticeList ?? []).map((notice) => mapNotice(notice, false)).sort(sortDesc);
         // 고정 공지 ID 추출 (중복 방지용)
         const pinnedIds = new Set(pinned.map((notice) => notice.noticeId));
         // 고정 공지를 앞에, 일반 공지(중복 제외)를 뒤에 합침
@@ -125,10 +127,10 @@ const NoticePage = () => {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F8FFFE" }}>
       <header className="sticky top-0 z-50 px-4 py-3" style={{ backgroundColor: "#10B981" }}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <button className="flex items-center gap-2" onClick={() => navigate("/main")}>
             <ComaLogo size="sm" />
             <span className="text-white font-bold text-lg">COMA-ROOM</span>
-          </div>
+          </button>
           <div className="flex items-center gap-4">
             <button onClick={() => navigate("/notifications")}>
               <Bell className="w-5 h-5 text-white" />

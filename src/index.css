@@ -275,8 +275,69 @@
     border-color: hsl(152 25% 20%) !important;
   }
 
-  .dark [style*="border: 1px solid #D1FAE5"] {
+  .dark [style*="border: 1px solid #D1FAE5"],
+  .dark [style*="border: 1px solid rgb(209, 250, 229)"],
+  .dark [style*="border: 1px solid rgb(209,250,229)"] {
     border-color: hsl(152 25% 20%) !important;
+  }
+
+  .dark [style*="border: 1px solid #E2E2E2"],
+  .dark [style*="border: 1px solid rgb(226, 226, 226)"],
+  .dark [style*="border: 1px solid rgb(226,226,226)"] {
+    border-color: hsl(152 20% 25%) !important;
+  }
+
+  /* #FFFBEB - 읽지 않은 알림 배경 (amber) */
+  .dark [style*="background-color: #FFFBEB"],
+  .dark [style*="background-color: rgb(255, 251, 235)"],
+  .dark [style*="background-color: rgb(255,251,235)"] {
+    background-color: hsl(45 25% 12%) !important;
+  }
+
+  /* #F1F5F9 - 연한 회색 배경 (투표 배지, 페이지네이션) */
+  .dark [style*="background-color: #F1F5F9"],
+  .dark [style*="background-color: rgb(241, 245, 249)"],
+  .dark [style*="background-color: rgb(241,245,249)"] {
+    background-color: hsl(152 20% 18%) !important;
+  }
+
+  /* #F0FDF4 - 매우 연한 녹색 배경 */
+  .dark [style*="background-color: #F0FDF4"],
+  .dark [style*="background-color: rgb(240, 253, 244)"],
+  .dark [style*="background-color: rgb(240,253,244)"] {
+    background-color: hsl(152 25% 14%) !important;
+  }
+
+  /* #90A1B9 - 청회색 텍스트 */
+  .dark [style*="color: #90A1B9"],
+  .dark [style*="color: rgb(144, 161, 185)"],
+  .dark [style*="color: rgb(144,161,185)"] {
+    color: hsl(152 15% 55%) !important;
+  }
+
+  /* borderBottom 단축 속성 */
+  .dark [style*="border-bottom: 1px solid rgb(209, 250, 229)"],
+  .dark [style*="border-bottom: 1px solid rgb(209,250,229)"] {
+    border-bottom-color: hsl(152 25% 20%) !important;
+  }
+
+  /* borderTop 단축 속성 */
+  .dark [style*="border-top: 1px solid rgb(209, 250, 229)"],
+  .dark [style*="border-top: 1px solid rgb(209,250,229)"] {
+    border-top-color: hsl(152 25% 20%) !important;
+  }
+
+  /* #FEE685 테두리 (읽지 않은 알림) */
+  .dark [style*="border: 1px solid #FEE685"],
+  .dark [style*="border: 1px solid rgb(254, 230, 133)"],
+  .dark [style*="border: 1px solid rgb(254,230,133)"] {
+    border-color: hsl(45 30% 25%) !important;
+  }
+
+  /* 2px 테두리 (내 순위 강조) */
+  .dark [style*="border: 2px solid #10B981"],
+  .dark [style*="border: 2px solid rgb(16, 185, 129)"] {
+    border-color: hsl(152 40% 40%) !important;
   }
 
   .dark header[style*="background-color: #10B981"] {
@@ -290,4 +351,382 @@
   .dark [style*="background: linear-gradient"] {
     filter: brightness(0.85);
   }
+}
+
+  /* #FFF1F2 - 에러 배경 */
+  .dark [style*="background-color: #FFF1F2"],
+  .dark [style*="background-color: rgb(255, 241, 242)"],
+  .dark [style*="background-color: rgb(255,241,242)"] {
+    background-color: hsl(0 30% 12%) !important;
+  }
+
+  /* #9CA3AF - placeholder 회색 */
+  .dark [style*="color: #9CA3AF"],
+  .dark [style*="color: rgb(156, 163, 175)"],
+  .dark [style*="color: rgb(156,163,175)"] {
+    color: hsl(152 10% 45%) !important;
+  }
+
+  /* #E2E8F0 - 연한 청회색 배경 (진행률 바 배경) */
+  .dark [style*="background-color: #E2E8F0"],
+  .dark [style*="background-color: rgb(226, 232, 240)"],
+  .dark [style*="background-color: rgb(226,232,240)"] {
+    background-color: hsl(152 20% 18%) !important;
+  }
+
+  /* #DCFCE7 - 연한 녹색 배경 (관리자 랭킹 등) */
+  .dark [style*="background-color: #DCFCE7"],
+  .dark [style*="background-color: rgb(220, 252, 231)"],
+  .dark [style*="background-color: rgb(220,252,231)"] {
+    background-color: hsl(152 25% 18%) !important;
+  }
+
+  /* #008236 - 진한 녹색 텍스트/배경 (관리자 배지 등) */
+  .dark [style*="color: #008236"],
+  .dark [style*="color: rgb(0, 130, 54)"],
+  .dark [style*="color: rgb(0,130,54)"] {
+    color: hsl(152 55% 55%) !important;
+  }
+
+  .dark [style*="background-color: #008236"],
+  .dark [style*="background-color: rgb(0, 130, 54)"],
+  .dark [style*="background-color: rgb(0,130,54)"] {
+    background-color: hsl(152 40% 20%) !important;
+  }
+
+  /* border: 2px dashed (앨범 업로드) */
+  .dark [style*="border: 2px dashed rgb(209, 250, 229)"],
+  .dark [style*="border: 2px dashed rgb(209,250,229)"],
+  .dark [style*="border: 2px dashed #D1FAE5"] {
+    border-color: hsl(152 25% 20%) !important;
+  }
+
+  /* ─── 빨간/핑크 계열 배경 ─── */
+  /* #FFF1F2 - covered above */
+  /* #FFE4E6 - 에러 테두리 */
+  .dark [style*="border: 1px solid #FFE4E6"],
+  .dark [style*="border: 1px solid rgb(255, 228, 230)"],
+  .dark [style*="border: 1px solid rgb(255,228,230)"] {
+    border-color: hsl(0 30% 22%) !important;
+  }
+
+  /* #FFE4E6 - 배경 */
+  .dark [style*="background-color: #FFE4E6"],
+  .dark [style*="background-color: rgb(255, 228, 230)"],
+  .dark [style*="background-color: rgb(255,228,230)"] {
+    background-color: hsl(0 35% 14%) !important;
+  }
+
+  /* #FFC9C9 - 연한 핑크/빨강 배경 */
+  .dark [style*="background-color: #FFC9C9"],
+  .dark [style*="background-color: rgb(255, 201, 201)"],
+  .dark [style*="background-color: rgb(255,201,201)"] {
+    background-color: hsl(0 35% 16%) !important;
+  }
+
+  /* #FECACA - 연한 빨강 배경 */
+  .dark [style*="background-color: #FECACA"],
+  .dark [style*="background-color: rgb(254, 202, 202)"],
+  .dark [style*="background-color: rgb(254,202,202)"] {
+    background-color: hsl(0 35% 16%) !important;
+  }
+
+  /* #FEE2E2 - 연한 빨강 배경 (삭제 아이콘 버튼) */
+  .dark [style*="background-color: #FEE2E2"],
+  .dark [style*="background-color: rgb(254, 226, 226)"],
+  .dark [style*="background-color: rgb(254,226,226)"] {
+    background-color: hsl(0 35% 14%) !important;
+  }
+
+  /* ─── 빨간 텍스트/배경 계열 ─── */
+  /* #C70036 - 에러 텍스트 */
+  .dark [style*="color: #C70036"],
+  .dark [style*="color: rgb(199, 0, 54)"],
+  .dark [style*="color: rgb(199,0,54)"] {
+    color: hsl(345 75% 60%) !important;
+  }
+
+  /* #E7000B - 밝은 빨강 텍스트/배경 */
+  .dark [style*="color: #E7000B"],
+  .dark [style*="color: rgb(231, 0, 11)"],
+  .dark [style*="color: rgb(231,0,11)"] {
+    color: hsl(2 80% 60%) !important;
+  }
+
+  .dark [style*="background-color: #E7000B"],
+  .dark [style*="background-color: rgb(231, 0, 11)"],
+  .dark [style*="background-color: rgb(231,0,11)"] {
+    background-color: hsl(2 50% 28%) !important;
+  }
+
+  /* #B91C1C - 진한 빨강 텍스트 */
+  .dark [style*="color: #B91C1C"],
+  .dark [style*="color: rgb(185, 28, 28)"],
+  .dark [style*="color: rgb(185,28,28)"] {
+    color: hsl(0 70% 60%) !important;
+  }
+
+  /* ─── 주황/앰버 계열 ─── */
+  /* #FEF3C6 - 연한 앰버 배경 */
+  .dark [style*="background-color: #FEF3C6"],
+  .dark [style*="background-color: rgb(254, 243, 198)"],
+  .dark [style*="background-color: rgb(254,243,198)"] {
+    background-color: hsl(45 35% 14%) !important;
+  }
+
+  /* #B45309 - 앰버 텍스트 */
+  .dark [style*="color: #B45309"],
+  .dark [style*="color: rgb(180, 83, 9)"],
+  .dark [style*="color: rgb(180,83,9)"] {
+    color: hsl(38 85% 60%) !important;
+  }
+
+  /* #BB4D00 - 진한 주황 텍스트 */
+  .dark [style*="color: #BB4D00"],
+  .dark [style*="color: rgb(187, 77, 0)"],
+  .dark [style*="color: rgb(187,77,0)"] {
+    color: hsl(28 85% 60%) !important;
+  }
+
+  /* #92400E - 진한 앰버 텍스트 */
+  .dark [style*="color: #92400E"],
+  .dark [style*="color: rgb(146, 64, 14)"],
+  .dark [style*="color: rgb(146,64,14)"] {
+    color: hsl(38 75% 60%) !important;
+  }
+
+  /* ─── 회색 계열 배경 ─── */
+  /* #F9FAFB - 거의 흰색 배경 */
+  .dark [style*="background-color: #F9FAFB"],
+  .dark [style*="background-color: rgb(249, 250, 251)"],
+  .dark [style*="background-color: rgb(249,250,251)"] {
+    background-color: hsl(152 20% 14%) !important;
+  }
+
+  /* #F3F4F6 - 연한 회색 배경 */
+  .dark [style*="background-color: #F3F4F6"],
+  .dark [style*="background-color: rgb(243, 244, 246)"],
+  .dark [style*="background-color: rgb(243,244,246)"] {
+    background-color: hsl(152 15% 16%) !important;
+  }
+
+  /* #4B5563 - 진한 회색 텍스트 */
+  .dark [style*="color: #4B5563"],
+  .dark [style*="color: rgb(75, 85, 99)"],
+  .dark [style*="color: rgb(75,85,99)"] {
+    color: hsl(152 10% 70%) !important;
+  }
+
+  /* ─── 보라/인디고 계열 ─── */
+  /* #4F46E5 - 인디고 텍스트 */
+  .dark [style*="color: #4F46E5"],
+  .dark [style*="color: rgb(79, 70, 229)"],
+  .dark [style*="color: rgb(79,70,229)"] {
+    color: hsl(240 70% 72%) !important;
+  }
+
+  /* ─── 진한 녹색 버튼 ─── */
+  /* #0A6647 - 버튼 배경 (메인페이지 등) */
+  .dark [style*="background-color: #0A6647"],
+  .dark [style*="background-color: rgb(10, 102, 71)"],
+  .dark [style*="background-color: rgb(10,102,71)"] {
+    background-color: hsl(152 40% 22%) !important;
+  }
+
+  /* #047857 - 텍스트 색상 (공지 관리자 배지) */
+  .dark [style*="color: #047857"],
+  .dark [style*="color: rgb(4, 120, 87)"],
+  .dark [style*="color: rgb(4,120,87)"] {
+    color: hsl(152 55% 55%) !important;
+  }
+
+  /* #007A55 - 진한 녹색 텍스트 (스터디 초급 배지) */
+  .dark [style*="color: #007A55"],
+  .dark [style*="color: rgb(0, 122, 85)"],
+  .dark [style*="color: rgb(0,122,85)"] {
+    color: hsl(152 55% 55%) !important;
+  }
+
+  /* #FEE685 - 노란색 배경 (중요 공지 배지, 랭킹 배경) */
+  .dark [style*="background-color: #FEE685"],
+  .dark [style*="background-color: rgb(254, 230, 133)"],
+  .dark [style*="background-color: rgb(254,230,133)"] {
+    background-color: hsl(45 35% 18%) !important;
+  }
+
+  /* ─── 파란색 계열 ─── */
+  /* #EFF6FF - 연한 파랑 배경 (알림 투표/앨범 아이콘) */
+  .dark [style*="background-color: #EFF6FF"],
+  .dark [style*="background-color: rgb(239, 246, 255)"],
+  .dark [style*="background-color: rgb(239,246,255)"] {
+    background-color: hsl(220 30% 16%) !important;
+  }
+
+  /* #2B7FFF - 파랑 텍스트/아이콘 */
+  .dark [style*="color: #2B7FFF"],
+  .dark [style*="color: rgb(43, 127, 255)"],
+  .dark [style*="color: rgb(43,127,255)"] {
+    color: hsl(220 80% 65%) !important;
+  }
+
+  /* ─── 보라 계열 ─── */
+  /* #E9D4FF - 연한 보라 배경 (공지 IMPORTANT 배지) */
+  .dark [style*="background-color: #E9D4FF"],
+  .dark [style*="background-color: rgb(233, 212, 255)"],
+  .dark [style*="background-color: rgb(233,212,255)"] {
+    background-color: hsl(270 25% 18%) !important;
+  }
+
+  /* #EDE9FE - 매우 연한 보라 배경 (XP 상세) */
+  .dark [style*="background-color: #EDE9FE"],
+  .dark [style*="background-color: rgb(237, 233, 254)"],
+  .dark [style*="background-color: rgb(237,233,254)"] {
+    background-color: hsl(260 25% 18%) !important;
+  }
+
+  /* #8200DB - 진한 보라 텍스트 (공지 IMPORTANT) */
+  .dark [style*="color: #8200DB"],
+  .dark [style*="color: rgb(130, 0, 219)"],
+  .dark [style*="color: rgb(130,0,219)"] {
+    color: hsl(270 75% 70%) !important;
+  }
+
+  /* #7C3AED - 보라 텍스트 (XP 상세) */
+  .dark [style*="color: #7C3AED"],
+  .dark [style*="color: rgb(124, 58, 237)"],
+  .dark [style*="color: rgb(124,58,237)"] {
+    color: hsl(260 70% 70%) !important;
+  }
+
+  /* ─── 주황/살구 계열 ─── */
+  /* #FFF7ED - 매우 연한 주황 배경 (카메라 권한 안내) */
+  .dark [style*="background-color: #FFF7ED"],
+  .dark [style*="background-color: rgb(255, 247, 237)"],
+  .dark [style*="background-color: rgb(255,247,237)"] {
+    background-color: hsl(30 30% 14%) !important;
+  }
+
+  /* #FFEDD4 - 연한 주황 배경 (XP 상세) */
+  .dark [style*="background-color: #FFEDD4"],
+  .dark [style*="background-color: rgb(255, 237, 212)"],
+  .dark [style*="background-color: rgb(255,237,212)"] {
+    background-color: hsl(30 35% 14%) !important;
+  }
+
+  /* #FED7AA - 주황 테두리 */
+  .dark [style*="border: 1px solid #FED7AA"],
+  .dark [style*="border: 1px solid rgb(254, 215, 170)"],
+  .dark [style*="border: 1px solid rgb(254,215,170)"] {
+    border-color: hsl(30 35% 25%) !important;
+  }
+
+  /* #CA3500 - 진한 주황 텍스트 (XP 상세) */
+  .dark [style*="color: #CA3500"],
+  .dark [style*="color: rgb(202, 53, 0)"],
+  .dark [style*="color: rgb(202,53,0)"] {
+    color: hsl(22 85% 62%) !important;
+  }
+
+  /* #FF2056 - 밝은 빨강/핑크 아이콘 (좋아요 알림) */
+  .dark [style*="color: #FF2056"],
+  .dark [style*="color: rgb(255, 32, 86)"],
+  .dark [style*="color: rgb(255,32,86)"] {
+    color: hsl(345 90% 60%) !important;
+  }
+
+  /* #374151 - 진한 회색 텍스트 (공지 본문) */
+  .dark [style*="color: #374151"],
+  .dark [style*="color: rgb(55, 65, 81)"],
+  .dark [style*="color: rgb(55,65,81)"] {
+    color: hsl(152 10% 75%) !important;
+  }
+
+  /* ─── 로그인 폼 추가 색상 ─── */
+  /* #FEF2F2 - 에러 배경 (로그인 폼) */
+  .dark [style*="background-color: #FEF2F2"],
+  .dark [style*="background-color: rgb(254, 242, 242)"],
+  .dark [style*="background-color: rgb(254,242,242)"] {
+    background-color: hsl(0 30% 12%) !important;
+  }
+
+  /* #9F0712 - 에러 텍스트 (로그인 폼) */
+  .dark [style*="color: #9F0712"],
+  .dark [style*="color: rgb(159, 7, 18)"],
+  .dark [style*="color: rgb(159,7,18)"] {
+    color: hsl(355 75% 60%) !important;
+  }
+
+  /* #40C095 - 기본 녹색 텍스트 (로그인 폼) */
+  .dark [style*="color: #40C095"],
+  .dark [style*="color: rgb(64, 192, 149)"],
+  .dark [style*="color: rgb(64,192,149)"] {
+    color: hsl(152 55% 55%) !important;
+  }
+
+  /* #FE9A00 - 주황색 (대기중 상태, 고정 핀, pending 배지) */
+  .dark [style*="background-color: #FE9A00"],
+  .dark [style*="background-color: rgb(254, 154, 0)"],
+  .dark [style*="background-color: rgb(254,154,0)"] {
+    background-color: hsl(38 60% 25%) !important;
+  }
+
+  .dark [style*="color: #FE9A00"],
+  .dark [style*="color: rgb(254, 154, 0)"],
+  .dark [style*="color: rgb(254,154,0)"] {
+    color: hsl(38 85% 60%) !important;
+  }
+
+  /* #EF4444 - 빨간색 (삭제 버튼, 에러 텍스트) */
+  .dark [style*="background-color: #EF4444"],
+  .dark [style*="background-color: rgb(239, 68, 68)"],
+  .dark [style*="background-color: rgb(239,68,68)"] {
+    background-color: hsl(0 50% 30%) !important;
+  }
+
+  .dark [style*="color: #EF4444"],
+  .dark [style*="color: rgb(239, 68, 68)"],
+  .dark [style*="color: rgb(239,68,68)"] {
+    color: hsl(0 75% 60%) !important;
+  }
+
+  /* #D1D5DB - 연한 회색 테두리 (설정 페이지 버튼) */
+  .dark [style*="border: 1px solid #D1D5DB"],
+  .dark [style*="border: 1px solid rgb(209, 213, 219)"],
+  .dark [style*="border: 1px solid rgb(209,213,219)"] {
+    border-color: hsl(152 20% 22%) !important;
+  }
+
+  /* #E0E7FF / #6366F1 - 보라색 배경/텍스트 (관리자 공지 배지) */
+  .dark [style*="background-color: #E0E7FF"],
+  .dark [style*="background-color: rgb(224, 231, 255)"],
+  .dark [style*="background-color: rgb(224,231,255)"] {
+    background-color: hsl(240 25% 18%) !important;
+  }
+
+  .dark [style*="color: #6366F1"],
+  .dark [style*="color: rgb(99, 102, 241)"],
+  .dark [style*="color: rgb(99,102,241)"] {
+    color: hsl(240 70% 70%) !important;
+  }
+
+/* ===== 전역 Tailwind 클래스 다크모드 오버라이드 ===== */
+
+/* 드롭다운 메뉴 배경 (모든 페이지 공통) */
+.dark .bg-white {
+  background-color: hsl(152 30% 12%) !important;
+}
+
+/* 드롭다운 메뉴 아이템 hover */
+.dark .hover\:bg-gray-50:hover {
+  background-color: hsl(152 25% 18%) !important;
+}
+
+/* 드롭다운 메뉴 border */
+.dark .border-gray-200 {
+  border-color: hsl(152 25% 20%) !important;
+}
+
+/* 로그인 페이지 gradient 배경 */
+.dark .gradient-mint {
+  background: hsl(152 30% 8%) !important;
 }
