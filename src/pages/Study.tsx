@@ -191,7 +191,7 @@ const Study = () => {
             </div>
             <p className="text-sm" style={{ color: "#6B7280" }}>함께 공부하고 성장해 보세요.</p>
           </div>
-          <button className="flex items-center gap-1 px-4 py-2 rounded-full text-sm font-medium text-white" style={{ backgroundColor: "#10B981" }}>
+          <button onClick={() => navigate("/admin/studies/new")} className="flex items-center gap-1 px-4 py-2 rounded-full text-sm font-medium text-white" style={{ backgroundColor: "#10B981" }}>
             <span className="text-lg">+</span>
             <span>스터디 만들기</span>
           </button>
@@ -214,7 +214,7 @@ const Study = () => {
         <div className="space-y-3">
           {activeTab === "join"
             ? joinableStudies.map((study) => (
-                <div key={study.id} className="rounded-2xl p-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}>
+                <div key={study.id} onClick={() => navigate("/study/" + study.id + "/weeks?role=member")} className="cursor-pointer rounded-2xl p-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}>
                   <div className="flex items-start justify-between mb-1">
                     <h3 className="font-bold text-lg" style={{ color: "#0F4C3A" }}>{study.title}</h3>
                     <span className="px-3 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: study.level === "초급" ? "#D1FAE5" : "#FEF3C6", color: study.level === "초급" ? "#007A55" : "#BB4D00" }}>{study.level}</span>
@@ -231,7 +231,7 @@ const Study = () => {
               ))
             : activeTab === "completed"
               ? completedStudies.map((study) => (
-                  <div key={study.id} className="rounded-2xl p-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}>
+                  <div key={study.id} onClick={() => navigate("/study/" + study.id + "/weeks?role=member")} className="cursor-pointer rounded-2xl p-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}>
                     <div className="flex items-center gap-2 mb-1"><h3 className="font-bold text-lg" style={{ color: "#0F4C3A" }}>{study.title}</h3><CheckCircle2 className="w-5 h-5" style={{ color: "#10B981" }} /></div>
                     <p className="text-sm mb-4" style={{ color: "#6B7280" }}>{study.completedDate}</p>
                     <div className="grid grid-cols-3 gap-4 text-center">
@@ -242,7 +242,7 @@ const Study = () => {
                   </div>
                 ))
               : myStudies.map((study) => (
-                  <div key={study.id} className="rounded-2xl p-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}>
+                  <div key={study.id} onClick={() => navigate("/study/" + study.id + "/weeks?role=" + (study.role === "리더" ? "leader" : "member"))} className="cursor-pointer rounded-2xl p-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}>
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <h3 className="font-bold" style={{ color: "#0F4C3A" }}>{study.title}</h3>
@@ -285,3 +285,4 @@ const Study = () => {
 };
 
 export default Study;
+

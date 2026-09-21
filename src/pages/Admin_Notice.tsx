@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Bell, User, Menu, Users, Sparkles, ClipboardCheck, Megaphone,
-  LayoutDashboard, FileText, Plus, Edit, Trash2,
+  LayoutDashboard, FileText, Plus, Edit, Trash2, Pin, PinOff, EyeOff,
 } from "lucide-react";
 import ComaLogo from "@/components/ComaLogo";
 import { Input } from "@/components/ui/input";
@@ -84,6 +84,7 @@ const Admin_Notice = () => {
   // Delete confirmation states
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [noticeActionId, setNoticeActionId] = useState<number | null>(null);
 
   const fetchNotices = async () => {
     setLoading(true);
@@ -145,6 +146,32 @@ const Admin_Notice = () => {
     setEditContent(notice.content);
     setEditPriority(notice.noticePriority);
     setIsEditModalOpen(true);
+  };
+
+  const handleTogglePinned = async (notice: Notice) => {
+    setNoticeActionId(notice.noticeId);
+    try {
+      await apiFetch(`/api/admin/notice/${notice.noticeId}/pinned`, { method: "PATCH" });
+      await fetchNotices();
+    } catch (e) {
+      console.error("공지 고정 상태 변경 실패:", e);
+      alert(e instanceof Error ? e.message : "공지 고정 상태를 변경하지 못했습니다.");
+    } finally {
+      setNoticeActionId(null);
+    }
+  };
+
+  const handleHideNotice = async (notice: Notice) => {
+    setNoticeActionId(notice.noticeId);
+    try {
+      await apiFetch(`/api/admin/notice/${notice.noticeId}/hidden`, { method: "PATCH" });
+      setNotices((prev) => prev.filter((item) => item.noticeId !== notice.noticeId));
+    } catch (e) {
+      console.error("공지 숨김 실패:", e);
+      alert(e instanceof Error ? e.message : "공지를 숨기지 못했습니다.");
+    } finally {
+      setNoticeActionId(null);
+    }
   };
 
   const handleUpdateNotice = async () => {
@@ -355,6 +382,24 @@ const Admin_Notice = () => {
                 </div>
 
                 <div className="flex items-center gap-2 mt-3">
+                  <button
+                    onClick={() => handleTogglePinned(notice)}
+                    disabled={noticeActionId === notice.noticeId}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50"
+                    style={{ backgroundColor: "#FEF3C7", color: "#92400E" }}
+                  >
+                    {notice.pinned ? <PinOff className="w-3 h-3" /> : <Pin className="w-3 h-3" />}
+                    {notice.pinned ? "고정 해제" : "상단 고정"}
+                  </button>
+                  <button
+                    onClick={() => handleHideNotice(notice)}
+                    disabled={noticeActionId === notice.noticeId}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50"
+                    style={{ backgroundColor: "#F3F4F6", color: "#4B5563" }}
+                  >
+                    <EyeOff className="w-3 h-3" />
+                    숨김
+                  </button>
                   <button
                     onClick={() => handleEditClick(notice)}
                     className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"

@@ -36,6 +36,16 @@ import Admin_Leaderboard from "./pages/Admin_Leaderboard";
 import NotFound from "./pages/NotFound";
 import ProtectedRoute from "./components/ProtectedRoute";
 
+import { AdminEventDetail, AdminEventForm, AdminEventList } from "./pages/Admin_Events";
+import { AdminAlbumApprovalDetail, AdminAlbumApprovalList } from "./pages/Admin_AlbumApproval";
+import {
+  AdminStudyCreate,
+  StudyAttendanceCreate,
+  StudyWeekDetail,
+  StudyWeekPlanCreate,
+  StudyWeeks,
+} from "./pages/StudyLms";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -65,6 +75,10 @@ const App = () => (
               <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
               <Route path="/study" element={<ProtectedRoute><Study /></ProtectedRoute>} />
+              <Route path="/study/:studyId/weeks" element={<ProtectedRoute><StudyWeeks /></ProtectedRoute>} />
+              <Route path="/study/:studyId/weeks/new" element={<ProtectedRoute><StudyWeekPlanCreate /></ProtectedRoute>} />
+              <Route path="/study/:studyId/weeks/:week" element={<ProtectedRoute><StudyWeekDetail /></ProtectedRoute>} />
+              <Route path="/study/:studyId/weeks/:week/attendance/new" element={<ProtectedRoute><StudyAttendanceCreate /></ProtectedRoute>} />
               <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute requireAdmin><Admin_MainPage /></ProtectedRoute>} />
               <Route path="/admin/members" element={<ProtectedRoute requireAdmin><Admin_Members /></ProtectedRoute>} />
@@ -75,6 +89,13 @@ const App = () => (
               <Route path="/admin/vote/create" element={<ProtectedRoute requireAdmin><Admin_Vote_Create /></ProtectedRoute>} />
               <Route path="/admin/notice" element={<ProtectedRoute requireAdmin><Admin_Notice /></ProtectedRoute>} />
               <Route path="/admin/leaderboard" element={<ProtectedRoute requireAdmin><Admin_Leaderboard /></ProtectedRoute>} />
+              <Route path="/admin/events" element={<ProtectedRoute requireAdmin><AdminEventList /></ProtectedRoute>} />
+              <Route path="/admin/events/new" element={<ProtectedRoute requireAdmin><AdminEventForm /></ProtectedRoute>} />
+              <Route path="/admin/events/:eventId" element={<ProtectedRoute requireAdmin><AdminEventDetail /></ProtectedRoute>} />
+              <Route path="/admin/events/:eventId/edit" element={<ProtectedRoute requireAdmin><AdminEventForm edit /></ProtectedRoute>} />
+              <Route path="/admin/albums" element={<ProtectedRoute requireAdmin><AdminAlbumApprovalList /></ProtectedRoute>} />
+              <Route path="/admin/albums/:postId" element={<ProtectedRoute requireAdmin><AdminAlbumApprovalDetail /></ProtectedRoute>} />
+              <Route path="/admin/studies/new" element={<ProtectedRoute requireAdmin><AdminStudyCreate /></ProtectedRoute>} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
                 </Routes>

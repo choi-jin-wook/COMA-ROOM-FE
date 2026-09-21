@@ -16,7 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   Bell, User, Menu, Users, Sparkles, LayoutDashboard,
   ClipboardCheck, Megaphone, ChevronLeft, ChevronRight,
-  Play, Clock, QrCode, StopCircle, Trash2,
+  Play, Clock, QrCode, StopCircle, Trash2, UserPlus, UserMinus,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import ComaLogo from "@/components/ComaLogo";
@@ -52,6 +52,22 @@ interface Attendee {
   checkedInAt: string;
 }
 
+interface ApiAttendee {
+  memberId: number;
+  name: string;
+  studentId: string;
+  major: string | null;
+  attendedAt: string;
+}
+
+const toAttendees = (items: ApiAttendee[]): Attendee[] => items.map((item) => ({
+  id: item.memberId,
+  name: item.name,
+  studentId: item.studentId,
+  grade: item.major ?? "-",
+  checkedInAt: item.attendedAt?.replace("T", " ").slice(0, 16) ?? "-",
+}));
+
 interface AttendanceRecord {
   id: number;
   title: string;
@@ -71,7 +87,7 @@ type CreateEventResponse = {
   rewardXp: number;
   location: string;
   category: string;
-  hostNickname: string;
+  hostname: string;
 };
 
 type CreateAttendanceResponse = {
@@ -89,6 +105,7 @@ const Admin_Attendance = () => {
   // 발급된 QR 코드 ID (부원이 스캔하는 값)
   const [sessionId, setSessionId] = useState("");
   const [qrCodeId, setQrCodeId] = useState("");
+  const [activeEventId, setActiveEventId] = useState<number | null>(null);
   // 현재 세션에서 실시간 출석한 인원 수
   const [currentAttendees, setCurrentAttendees] = useState(0);
   // 폼 입력값 - 활동명, 유형, 장소, 날짜
@@ -110,6 +127,8 @@ const Admin_Attendance = () => {
   // 상세보기 Dialog 상태
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<AttendanceRecord | null>(null);
+  const [memberIdInput, setMemberIdInput] = useState("");
+  const [attendanceAdjusting, setAttendanceAdjusting] = useState(false);
   // API 호출 중 중복 클릭 방지
   const [isSubmitting, setIsSubmitting] = useState(false);
   // 전체/활성 부원 수 (GET /api/admin/member/manage 에서 조회)
@@ -118,13 +137,25 @@ const Admin_Attendance = () => {
 
   // 마운트 시 부원 수 조회
   useEffect(() => {
-    apiFetch<{ totalMember: number; activateMember: number }>("/api/admin/member/manage?page=1")
+    apiFetch<{ totalMember: number; activateMember: number }>("/api/admin/member/manage?page=0")
       .then((data) => {
         setTotalMember(data.totalMember);
         setActivateMember(data.activateMember);
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!isSessionActive || activeEventId === null) return;
+    const refreshAttendance = () => {
+      apiFetch<ApiAttendee[]>(`/api/admin/event/${activeEventId}/attendances`)
+        .then((items) => setCurrentAttendees(items.length))
+        .catch(() => {});
+    };
+    refreshAttendance();
+    const timer = window.setInterval(refreshAttendance, 5000);
+    return () => window.clearInterval(timer);
+  }, [activeEventId, isSessionActive]);
 
   // 선택된 필터에 맞는 기록만 필터링
   const filteredRecords =
@@ -174,6 +205,7 @@ const Admin_Attendance = () => {
 
       setSessionId(createdQrCodeId);
       setQrCodeId(createdQrCodeId);
+      setActiveEventId(createdEventId);
       setCurrentAttendees(0);
       setSessionStartTime(new Date());
       setIsSessionActive(true);
@@ -188,23 +220,25 @@ const Admin_Attendance = () => {
   // 출석 세션 종료
   // - 소요 시간 계산 후 기록을 attendanceRecords에 추가
   // - 폼 및 세션 상태 초기화
-  const handleEndSession = () => {
-    if (sessionStartTime && activityName.trim()) {
+  const handleEndSession = async () => {
+    if (sessionStartTime && activityName.trim() && activeEventId !== null) {
       const now = new Date();
       const durationMinutes = Math.round(
         (now.getTime() - sessionStartTime.getTime()) / 60000
       );
 
+      const attendance = await apiFetch<ApiAttendee[]>(`/api/admin/event/${activeEventId}/attendances`).catch(() => [] as ApiAttendee[]);
+      const attendeeList = toAttendees(attendance);
       const newRecord: AttendanceRecord = {
-        id: Date.now(),
+        id: activeEventId,
         title: activityName,
         activityType,
         date: eventDate,
         time: sessionStartTime.toTimeString().slice(0, 5),
-        attendees: currentAttendees,
+        attendees: attendeeList.length,
         duration: durationMinutes || 1,
         status: "completed",
-        attendeeList: [],
+        attendeeList,
       };
 
       setAttendanceRecords((prev) => [newRecord, ...prev]);
@@ -213,6 +247,7 @@ const Admin_Attendance = () => {
     setIsSessionActive(false);
     setSessionId("");
     setQrCodeId("");
+    setActiveEventId(null);
     setCurrentAttendees(0);
     setActivityName("");
     setActivityType("정기회의");
@@ -228,9 +263,15 @@ const Admin_Attendance = () => {
   };
 
   // 삭제 확인 - 해당 ID의 기록을 목록에서 제거
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (deleteTargetId !== null) {
-      setAttendanceRecords((prev) => prev.filter((r) => r.id !== deleteTargetId));
+      try {
+        await apiFetch<void>(`/api/admin/event/${deleteTargetId}`, { method: "DELETE" });
+        setAttendanceRecords((prev) => prev.filter((r) => r.id !== deleteTargetId));
+      } catch (error) {
+        alert(error instanceof Error ? error.message : "출석 기록을 삭제하지 못했습니다.");
+        return;
+      }
     }
     setIsDeleteDialogOpen(false);
     setDeleteTargetId(null);
@@ -239,7 +280,52 @@ const Admin_Attendance = () => {
   // 상세보기 버튼 클릭 - 선택된 기록을 저장 후 상세 Dialog 열기
   const handleDetailClick = (record: AttendanceRecord) => {
     setSelectedRecord(record);
+    setMemberIdInput("");
     setIsDetailModalOpen(true);
+  };
+
+  const refreshSelectedAttendance = async (eventId: number) => {
+    const items = await apiFetch<ApiAttendee[]>(`/api/admin/event/${eventId}/attendances`);
+    const attendeeList = toAttendees(items);
+    setSelectedRecord((current) => current?.id === eventId
+      ? { ...current, attendees: attendeeList.length, attendeeList }
+      : current);
+    setAttendanceRecords((records) => records.map((record) => record.id === eventId
+      ? { ...record, attendees: attendeeList.length, attendeeList }
+      : record));
+    if (activeEventId === eventId) setCurrentAttendees(attendeeList.length);
+  };
+
+  const handleAddAttendance = async () => {
+    if (!selectedRecord) return;
+    const memberId = Number(memberIdInput);
+    if (!Number.isInteger(memberId) || memberId <= 0) {
+      alert("올바른 회원 ID를 입력해 주세요.");
+      return;
+    }
+    setAttendanceAdjusting(true);
+    try {
+      await apiFetch<void>(`/api/admin/event/${selectedRecord.id}/attendances/${memberId}`, { method: "POST" });
+      await refreshSelectedAttendance(selectedRecord.id);
+      setMemberIdInput("");
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "출석자를 추가하지 못했습니다.");
+    } finally {
+      setAttendanceAdjusting(false);
+    }
+  };
+
+  const handleRemoveAttendance = async (memberId: number) => {
+    if (!selectedRecord || !window.confirm("이 회원의 출석을 삭제하시겠습니까?")) return;
+    setAttendanceAdjusting(true);
+    try {
+      await apiFetch<void>(`/api/admin/event/${selectedRecord.id}/attendances/${memberId}`, { method: "DELETE" });
+      await refreshSelectedAttendance(selectedRecord.id);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : "출석자를 삭제하지 못했습니다.");
+    } finally {
+      setAttendanceAdjusting(false);
+    }
   };
 
   return (
@@ -557,6 +643,26 @@ const Admin_Attendance = () => {
               <span className="text-xl font-bold" style={{ color: "#10B981" }}>{selectedRecord?.attendeeList.length || 0}명</span>
             </div>
 
+            <div className="mb-4 flex gap-2">
+              <input
+                type="number"
+                min="1"
+                value={memberIdInput}
+                onChange={(event) => setMemberIdInput(event.target.value)}
+                placeholder="회원 ID"
+                className="min-w-0 flex-1 rounded-lg border px-3 py-2 text-sm"
+                style={{ borderColor: "#D1FAE5" }}
+              />
+              <button
+                onClick={handleAddAttendance}
+                disabled={attendanceAdjusting || !memberIdInput}
+                className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                style={{ backgroundColor: "#10B981" }}
+              >
+                <UserPlus className="h-4 w-4" />추가
+              </button>
+            </div>
+
             <h4 className="font-bold text-sm mb-3" style={{ color: "#0F4C3A" }}>출석자 명단</h4>
             <div className="space-y-2 max-h-[300px] overflow-y-auto">
               {selectedRecord?.attendeeList.length === 0 ? (
@@ -575,9 +681,18 @@ const Admin_Attendance = () => {
                         <p className="text-xs" style={{ color: "#6B7280" }}>{attendee.studentId} · {attendee.grade}</p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2">
                       <Clock className="w-3 h-3" style={{ color: "#6B7280" }} />
                       <span className="text-xs" style={{ color: "#6B7280" }}>{attendee.checkedInAt}</span>
+                      <button
+                        onClick={() => handleRemoveAttendance(attendee.id)}
+                        disabled={attendanceAdjusting}
+                        className="rounded-md p-1 disabled:opacity-50"
+                        aria-label={`${attendee.name} 출석 삭제`}
+                        style={{ backgroundColor: "#FEE2E2", color: "#EF4444" }}
+                      >
+                        <UserMinus className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </div>
                 ))
