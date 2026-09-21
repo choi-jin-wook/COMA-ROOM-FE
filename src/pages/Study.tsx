@@ -68,92 +68,13 @@ const Study = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"my" | "join" | "completed">("my");
 
-  const stats = { participating: 2, totalXP: 35, completed: 2 };
+  const stats = { participating: 0, totalXP: 0, completed: 0 };
 
-  const myStudies: StudyItem[] = [
-    {
-      id: 1,
-      title: "AI/ML 심화 스터디",
-      description: "딥러닝과 머신러닝 알고리즘 학습",
-      role: "멤버",
-      progress: 65,
-      currentMembers: 6,
-      maxMembers: 8,
-      nextSession: "1월 24일(수)",
-      schedule: "매주 수요일 오후 6시",
-      status: "active",
-    },
-    {
-      id: 2,
-      title: "웹 개발 프로젝트",
-      description: "React와 Node.js로 풀스택 프로젝트 진행",
-      role: "리더",
-      progress: 40,
-      currentMembers: 4,
-      maxMembers: 5,
-      nextSession: "1월 26일(금)",
-      schedule: "매주 금요일 오후 7시",
-      status: "active",
-    },
-  ];
+  const myStudies: StudyItem[] = [];
 
-  const joinableStudies: JoinableStudyItem[] = [
-    {
-      id: 3,
-      title: "알고리즘 코딩테스트",
-      description: "코딩테스트 대비 알고리즘 문제 풀이",
-      level: "중급",
-      tags: ["알고리즘", "코테"],
-      currentMembers: 3,
-      maxMembers: 6,
-      leader: "김철수",
-      leaderInitial: "김",
-      schedule: "매주 화요일 오후 8시",
-    },
-    {
-      id: 4,
-      title: "모바일 앱 개발",
-      description: "Flutter로 크로스플랫폼 앱 개발",
-      level: "초급",
-      tags: ["Flutter", "모바일"],
-      currentMembers: 2,
-      maxMembers: 4,
-      leader: "이영희",
-      leaderInitial: "이",
-      schedule: "매주 목요일 오후 6시",
-    },
-    {
-      id: 5,
-      title: "데이터 사이언스",
-      description: "Python으로 데이터 분석 및 시각화",
-      level: "중급",
-      tags: ["Python", "데이터"],
-      currentMembers: 5,
-      maxMembers: 6,
-      leader: "박민수",
-      leaderInitial: "박",
-      schedule: "매주 토요일 오후 7시",
-    },
-  ];
+  const joinableStudies: JoinableStudyItem[] = [];
 
-  const completedStudies: CompletedStudyItem[] = [
-    {
-      id: 6,
-      title: "Spring Boot 입문",
-      completedDate: "2024-12-20 완료",
-      totalSessions: 8,
-      attendance: 7,
-      xp: 20,
-    },
-    {
-      id: 7,
-      title: "클린 코드 읽기 모임",
-      completedDate: "2024-11-30 완료",
-      totalSessions: 6,
-      attendance: 6,
-      xp: 15,
-    },
-  ];
+  const completedStudies: CompletedStudyItem[] = [];
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F8FFFE" }}>
@@ -191,7 +112,7 @@ const Study = () => {
             </div>
             <p className="text-sm" style={{ color: "#6B7280" }}>함께 공부하고 성장해 보세요.</p>
           </div>
-          <button className="flex items-center gap-1 px-4 py-2 rounded-full text-sm font-medium text-white" style={{ backgroundColor: "#10B981" }}>
+          <button onClick={() => navigate("/admin/studies/new")} className="flex items-center gap-1 px-4 py-2 rounded-full text-sm font-medium text-white" style={{ backgroundColor: "#10B981" }}>
             <span className="text-lg">+</span>
             <span>스터디 만들기</span>
           </button>
@@ -212,6 +133,7 @@ const Study = () => {
         </div>
 
         <div className="space-y-3">
+          {(activeTab === "my" ? myStudies : activeTab === "join" ? joinableStudies : completedStudies).length === 0 && <p className="rounded-2xl border bg-card p-8 text-center text-sm text-muted-foreground">{activeTab === "my" ? "참여 중인 스터디가 없습니다." : activeTab === "join" ? "참여 가능한 스터디가 없습니다." : "완료한 스터디가 없습니다."}</p>}
           {activeTab === "join"
             ? joinableStudies.map((study) => (
                 <div key={study.id} className="rounded-2xl p-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}>
@@ -248,7 +170,7 @@ const Study = () => {
                         <h3 className="font-bold" style={{ color: "#0F4C3A" }}>{study.title}</h3>
                         <span className="px-2 py-0.5 rounded text-xs font-medium" style={{ backgroundColor: study.role === "리더" ? "#CAD5E2" : "#D1FAE5", color: study.role === "리더" ? "#314158" : "#10B981" }}>{study.role}</span>
                       </div>
-                      <ChevronRight className="w-5 h-5" style={{ color: "#6B7280" }} />
+                      <button aria-label={`${study.title} 주차 목록`} onClick={() => navigate(`/study/${study.id}/weeks`, { state: { study } })} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg hover:bg-muted"><ChevronRight className="w-5 h-5" style={{ color: "#6B7280" }} /></button>
                     </div>
                     <p className="text-sm mb-3" style={{ color: "#6B7280" }}>{study.description}</p>
                     <div className="mb-3">

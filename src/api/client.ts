@@ -1,4 +1,4 @@
-export const API_BASE = "https://api.comaroom.site";
+export const API_BASE = "http://localhost:8080";
 
 function authHeaders(token?: string): HeadersInit {
   const t = token ?? localStorage.getItem("accessToken");

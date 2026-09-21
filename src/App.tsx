@@ -23,6 +23,9 @@ import Notice from "./pages/Notice";
 import Notifications from "./pages/Notifications";
 import Settings from "./pages/Settings";
 import Study from "./pages/Study";
+import StudyLMS from "./pages/StudyLMS";
+import Admin_Study_Create from "./pages/Admin_Study_Create";
+import Admin_Event_Attendance from "./pages/Admin_Event_Attendance";
 import Leaderboard from "./pages/Leaderboard";
 import Admin_MainPage from "./pages/Admin_MainPage";
 import Admin_Members from "./pages/Admin_Members";
@@ -33,6 +36,11 @@ import Admin_Vote from "./pages/Admin_Vote";
 import Admin_Vote_Create from "./pages/Admin_Vote_Create";
 import Admin_Notice from "./pages/Admin_Notice";
 import Admin_Leaderboard from "./pages/Admin_Leaderboard";
+import Admin_Events from "./pages/Admin_Events";
+import Admin_Event_Detail from "./pages/Admin_Event_Detail";
+import Admin_Event_Form from "./pages/Admin_Event_Form";
+import Admin_AlbumApproval from "./pages/Admin_AlbumApproval";
+import Admin_AlbumApproval_Detail from "./pages/Admin_AlbumApproval_Detail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -64,6 +72,10 @@ const App = () => (
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/study" element={<Study />} />
+              <Route path="/study/:id/weeks" element={<StudyLMS />} />
+              <Route path="/study/:id/weeks/new" element={<StudyLMS view="create" />} />
+              <Route path="/study/:id/weeks/:week" element={<StudyLMS view="detail" />} />
+              <Route path="/study/:id/weeks/:week/attendance" element={<StudyLMS view="attendance" />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
               <Route path="/admin" element={<Admin_MainPage />} />
               <Route path="/admin/members" element={<Admin_Members />} />
@@ -74,6 +86,14 @@ const App = () => (
               <Route path="/admin/vote/create" element={<Admin_Vote_Create />} />
               <Route path="/admin/notice" element={<Admin_Notice />} />
               <Route path="/admin/leaderboard" element={<Admin_Leaderboard />} />
+              <Route path="/admin/events" element={<Admin_Events />} />
+              <Route path="/admin/events/new" element={<Admin_Event_Form />} />
+              <Route path="/admin/events/:id" element={<Admin_Event_Detail />} />
+              <Route path="/admin/events/:id/edit" element={<Admin_Event_Form />} />
+              <Route path="/admin/events/:id/attendance" element={<Admin_Event_Attendance />} />
+              <Route path="/admin/studies/new" element={<Admin_Study_Create />} />
+              <Route path="/admin/albums" element={<Admin_AlbumApproval />} />
+              <Route path="/admin/albums/:id" element={<Admin_AlbumApproval_Detail />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
                 </Routes>

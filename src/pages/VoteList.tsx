@@ -148,6 +148,22 @@ const VoteList = () => {
     }
   };
 
+  // 투표 취소
+  // DELETE /api/vote/votes/{voteId}/participate
+  // 성공 시: votedIds에서 제거, 투표 목록 재조회로 득표 결과 갱신
+  const handleVoteCancel = async (vote: ApiVote) => {
+    try {
+      await apiFetch(`/api/vote/votes/${vote.voteId}/participate`, {
+        method: "DELETE",
+      });
+
+      setVotedIds((prev) => prev.filter((id) => id !== vote.voteId));
+      await fetchVotes();
+    } catch (e) {
+      console.error("투표 취소 실패:", e);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F8FFFE" }}>
       <header className="sticky top-0 z-50 px-4 py-3" style={{ backgroundColor: "#10B981" }}>
@@ -360,10 +376,19 @@ const VoteList = () => {
                         </span>
                       </div>
                       {isVoted ? (
-                        // 투표 완료 상태 표시
-                        <span className="flex items-center gap-1 text-sm font-medium" style={{ color: "#10B981" }}>
-                          <CheckCircle className="w-4 h-4" /> 투표 완료
-                        </span>
+                        // 투표 완료 상태 표시 + 취소 버튼
+                        <div className="flex items-center gap-2">
+                          <button
+                            className="px-2 py-1 rounded-lg text-xs font-medium"
+                            style={{ backgroundColor: "rgba(239, 68, 68, 0.1)", color: "#EF4444" }}
+                            onClick={() => handleVoteCancel(vote)}
+                          >
+                            취소
+                          </button>
+                          <span className="flex items-center gap-1 text-sm font-medium" style={{ color: "#10B981" }}>
+                            <CheckCircle className="w-4 h-4" /> 투표 완료
+                          </span>
+                        </div>
                       ) : (
                         // 투표하기 버튼 - 옵션 미선택 시 비활성화
                         <button
