@@ -14,6 +14,10 @@ interface EventPost {
   createdAt: string;
 }
 
+interface EventPostPage {
+  content: EventPost[];
+}
+
 const ITEMS_PER_PAGE = 5;
 
 const Album = () => {
@@ -25,8 +29,8 @@ const Album = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    apiFetch<EventPost[]>("/api/event-posts")
-      .then((data) => setPosts(data.filter((p) => p.approvalStatus === "APPROVED")))
+    apiFetch<EventPostPage>("/api/event-posts?page=0&size=100&sort=createdAt,desc")
+      .then((data) => setPosts((data?.content ?? []).filter((p) => p.approvalStatus === "APPROVED")))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);

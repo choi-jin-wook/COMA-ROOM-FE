@@ -34,7 +34,7 @@ interface EventResponse {
   rewardXp: number;
   location: string;
   category: string;
-  hostNickname: string;
+  hostname: string;
 }
 
 const CATEGORY_MAP: Record<string, { label: string; color: string }> = {

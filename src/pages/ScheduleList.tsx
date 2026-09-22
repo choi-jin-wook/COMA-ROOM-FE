@@ -36,7 +36,7 @@ interface EventItem {
   rewardXp: number;
   location: string;
   category: string;
-  hostNickname: string;
+  hostname: string;
 }
 
 const CATEGORY_MAP: Record<string, string> = {
@@ -248,9 +248,9 @@ const ScheduleList = () => {
                         <Sparkles className="w-3 h-3" /> +{event.rewardXp}XP
                       </span>
                     </div>
-                    {event.hostNickname && (
+                    {event.hostname && (
                       <p className="text-xs" style={{ color: "#90A1B9" }}>
-                        주최: {event.hostNickname}
+                        주최: {event.hostname}
                       </p>
                     )}
                   </div>

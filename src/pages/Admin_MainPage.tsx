@@ -8,7 +8,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Bell, User, Menu, Users, Sparkles, CheckCircle, Calendar, ArrowRight, LayoutDashboard, UserCheck, Megaphone, BarChart3, MessageSquare, PartyPopper, ClipboardCheck, Trophy, Loader2 } from "lucide-react";
+import { Bell, User, Menu, Users, Sparkles, Calendar, ArrowRight, LayoutDashboard, UserCheck, Megaphone, BarChart3, Images, ClipboardCheck, Trophy, Loader2 } from "lucide-react";
 import ComaLogo from "@/components/ComaLogo";
 import { apiFetch } from "@/api/client";
 import {
@@ -92,6 +92,17 @@ const Admin_MainPage = () => {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-32 bg-white border border-gray-200 shadow-lg rounded-lg z-[100]">
+                <DropdownMenuItem className="flex items-center gap-2 cursor-pointer hover:bg-gray-50" onClick={() => navigate('/admin/events')}>
+                  <Calendar className="w-4 h-4" style={{ color: '#6B7280' }} />
+                  <span style={{ color: '#0F4C3A' }}>행사 관리</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-2 cursor-pointer hover:bg-gray-50" onClick={() => navigate('/admin/studies/new')}>
+                  <span style={{ color: '#0F4C3A' }}>스터디 관리</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-2 cursor-pointer hover:bg-gray-50" onClick={() => navigate('/admin/albums')}>
+                  <Images className="w-4 h-4" style={{ color: '#6B7280' }} />
+                  <span style={{ color: '#0F4C3A' }}>앨범 승인</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem className="flex items-center gap-2 cursor-pointer hover:bg-gray-50" onClick={() => { logout(); navigate("/"); }}>
                   <User className="w-4 h-4" style={{ color: '#6B7280' }} />
                   <span style={{ color: '#0F4C3A' }}>로그아웃</span>
@@ -169,13 +180,13 @@ const Admin_MainPage = () => {
           <div
             className="rounded-xl p-4 cursor-pointer hover:shadow-md transition-shadow"
             style={{ backgroundColor: '#FFFFFF', border: '1px solid #D1FAE5' }}
-            onClick={() => navigate('/admin/vote')}
+            onClick={() => navigate('/admin/events')}
           >
             <div className="w-10 h-10 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: '#D1FAE5' }}>
-              <MessageSquare className="w-5 h-5" style={{ color: '#10B981' }} />
+              <Calendar className="w-5 h-5" style={{ color: '#10B981' }} />
             </div>
-            <h4 className="font-semibold text-sm" style={{ color: '#0F4C3A' }}>투표</h4>
-            <p className="text-xs" style={{ color: '#6B7280' }}>투표 생성 및 관리</p>
+            <h4 className="font-semibold text-sm" style={{ color: '#0F4C3A' }}>행사 관리</h4>
+            <p className="text-xs" style={{ color: '#6B7280' }}>행사 생성 및 관리</p>
           </div>
 
           <div

@@ -1,38 +1,25 @@
-// ===================================================
-// 로그인 페이지
-// - 학번 + 비밀번호로 로그인
-// - 로그인 성공 시 JWT 토큰을 localStorage에 저장
-// - 역할(ADMIN/USER)에 따라 관리자 또는 일반 메인으로 이동
-// ===================================================
-
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import LoginForm from "@/components/LoginForm";
 import { toast } from "sonner";
 import comaLogo from "@/assets/coma-logo.png";
 import { useAuth, type User } from "@/contexts/AuthContext";
 import { apiFetch } from "@/api/client";
 
-// JWT 페이로드 파싱 (Base64 디코딩)
-// accessToken에서 role, id 등을 꺼낼 때 사용
 function decodeJwtPayload(token: string) {
   try {
     const base64Url = token.split(".")[1];
     if (!base64Url) return null;
-
     const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const padded = base64.padEnd(Math.ceil(base64.length / 4) * 4, "=");
-
-    return JSON.parse(atob(padded));
+    return JSON.parse(atob(base64.padEnd(Math.ceil(base64.length / 4) * 4, "=")));
   } catch {
     return null;
   }
 }
 
-type LoginData = {
-  message: string;
+type OAuthLoginData = {
   accessToken: string;
-  refreshToken: string;
-  role: string;
+  refreshToken?: string;
+  role?: string;
 };
 
 type ProfileData = {
@@ -40,41 +27,24 @@ type ProfileData = {
   studentId: string;
 };
 
-// API 응답의 role 문자열을 앱 내부 타입(admin | user)으로 정규화
 function normalizeRole(role: unknown): User["role"] {
   return typeof role === "string" && role.toUpperCase() === "ADMIN" ? "admin" : "user";
 }
 
-const Index = () => {
+const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const [isRedirecting, setIsRedirecting] = useState(false);
+  const exchangingCodeRef = useRef<string | null>(null);
 
-  // 로그인 처리 핸들러
-  // 1. POST /api/auth/login 으로 토큰 발급
-  // 2. JWT 페이로드에서 role 추출
-  // 3. GET /api/member/profile 로 이름/학번 보완
-  // 4. AuthContext에 유저 정보 저장 + localStorage 기록
-  // 5. ADMIN → /admin, USER → /main 으로 이동
-  const handleLogin = async (studentId: string, password: string) => {
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
+  const completeLogin = useCallback(async ({ accessToken, refreshToken, role: responseRole }: OAuthLoginData) => {
     try {
-      const data = await apiFetch<LoginData>("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ studentId, password }),
-      });
+      const payload = decodeJwtPayload(accessToken);
+      const role = normalizeRole(responseRole ?? payload?.role);
 
-      const payload = decodeJwtPayload(data.accessToken);
-      const role = normalizeRole(data.role ?? payload?.role);
+      localStorage.setItem("accessToken", accessToken);
+      if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
 
-      // 토큰을 localStorage에 저장해 이후 API 요청에 사용
-      localStorage.setItem("accessToken", data.accessToken);
-      localStorage.setItem("refreshToken", data.refreshToken);
-
-      // 프로필 조회 실패 시에도 로그인은 계속 진행
       let profile: ProfileData | null = null;
       try {
         profile = await apiFetch<ProfileData>("/api/member/profile");
@@ -84,84 +54,85 @@ const Index = () => {
 
       const user: User = {
         id: typeof payload?.id === "number" ? payload.id : 0,
-        name: profile?.name ?? payload?.name ?? studentId,
-        studentId: profile?.studentId ?? studentId,
+        name: profile?.name ?? payload?.name ?? "COMA 회원",
+        studentId: profile?.studentId ?? payload?.studentId ?? "",
         role,
       };
 
-      localStorage.setItem("name", user.name);
-      localStorage.setItem("user", JSON.stringify(user));
-
-      login({
-        user,
-        accessToken: data.accessToken,
-        refreshToken: data.refreshToken,
-      });
-
-      toast.success("로그인 성공", {
-        description: data.message ?? "환영합니다.",
-      });
-
-      // 역할에 따라 다른 페이지로 라우팅
-      if (role === "admin") {
-        toast.success("관리자 로그인 성공", {
-          description: "COMA-ROOM 관리자 모드로 이동합니다.",
-        });
-        navigate("/admin", { replace: true });
-      } else {
-        toast.success("로그인 성공", {
-          description: "COMA-ROOM에 오신 것을 환영합니다.",
-        });
-        navigate("/main", { replace: true });
-      }
-    } catch (err) {
+      login({ user, accessToken, refreshToken });
+      toast.success("로그인 성공", { description: "COMA-ROOM에 오신 것을 환영합니다." });
+      navigate(role === "admin" ? "/admin" : "/main", { replace: true });
+    } catch (error) {
       toast.error("로그인 실패", {
-        description: err instanceof Error ? err.message : "학번 또는 비밀번호가 올바르지 않습니다.",
+        description: error instanceof Error ? error.message : "네이버 로그인 처리에 실패했습니다.",
       });
     }
+  }, [login, navigate]);
+
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const loginCode = query.get("loginCode") ?? hash.get("loginCode");
+    if (!loginCode || exchangingCodeRef.current === loginCode) return;
+
+    exchangingCodeRef.current = loginCode;
+    setIsRedirecting(true);
+    window.history.replaceState({}, document.title, window.location.pathname);
+    void apiFetch<OAuthLoginData>("/api/auth/oauth/exchange", {
+      method: "POST",
+      body: JSON.stringify({ loginCode }),
+    })
+      .then(completeLogin)
+      .catch((error) => {
+        toast.error("로그인 실패", {
+          description: error instanceof Error ? error.message : "네이버 로그인 코드를 교환하지 못했습니다.",
+        });
+      })
+      .finally(() => setIsRedirecting(false));
+  }, [completeLogin]);
+
+  const handleNaverLogin = () => {
+    setIsRedirecting(true);
+    const loginUrl = import.meta.env.VITE_NAVER_LOGIN_URL;
+    window.location.assign(loginUrl);
   };
 
   return (
-    <div className="min-h-screen gradient-mint flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-[380px]">
-        <div className="flex flex-col items-center mb-6">
-          <img src={comaLogo} alt="COMA Logo" className="w-24 h-24 rounded-2xl" />
-          <h1
-            className="mt-4 text-[28px] font-bold tracking-tight"
-            style={{ color: "#40C095" }}
-          >
-            COMA-ROOM
-          </h1>
-          <p className="text-sm mt-1" style={{ color: "#6B7280" }}>
-            COMA 동아리 부원 전용 플랫폼
-          </p>
+    <div className="min-h-screen bg-[linear-gradient(115deg,#ECFDF5_0%,#F8FFFE_50%,#F0FDFA_100%)]">
+      <div className="mx-auto flex min-h-screen w-full max-w-[394px] flex-col px-4 pb-4 pt-[42px]">
+        <div className="flex flex-col items-center">
+          <img src={comaLogo} alt="COMA-ROOM" className="h-[77px] w-[77px] rounded-[20px] object-cover" />
+          <h1 className="mt-[15px] text-[30px] font-semibold leading-9 tracking-[0.4px] text-[#30B488]/80">COMA-ROOM</h1>
+          <p className="mt-2 text-base leading-6 text-[#6B7280]">COMA 동아리 회원 전용 플랫폼</p>
         </div>
 
-        {/* 로그인 폼 컴포넌트 - 학번/비밀번호 입력 및 제출 */}
-        <div
-          className="rounded-2xl p-6"
-          style={{
-            backgroundColor: "white",
-            boxShadow: "0 24px 48px -30px rgba(0,0,0,0.51)",
-          }}
-        >
-          <div
-            className="text-center mb-6 pb-4"
-            style={{ borderBottom: "1px solid #D1FAE5" }}
-          >
-            <h2 className="text-base font-bold" style={{ color: "#0F4C3A" }}>
-              부원 로그인
-            </h2>
-            <p className="text-sm mt-1" style={{ color: "#6B7280" }}>
-              COMA 동아리 부원만 접근 가능합니다
-            </p>
+        <div className="min-h-[300px] flex-1" />
+
+        <section className="h-[231px] rounded-[14px] border border-[#B4FFD9] bg-white shadow-[0_20px_25px_-12px_rgba(0,0,0,0.18),0_8px_10px_-5px_rgba(0,0,0,0.12)]">
+          <div className="px-6 pt-6 text-center">
+            <h2 className="text-base font-medium text-[#0F4C3A]">회원 로그인</h2>
+            <p className="mt-[6px] text-base leading-6 text-[#6B7280]">COMA 동아리 부원만 접근 가능합니다</p>
           </div>
+          <div className="mt-[20px] flex flex-col items-center px-6">
+            <button
+              type="button"
+              className="flex h-12 w-full items-center justify-center gap-2.5 rounded-[10px] bg-[#03C75A] px-[18px] text-[15px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-70"
+              onClick={handleNaverLogin}
+              disabled={isRedirecting}
+            >
+              <span aria-hidden="true" className="text-lg font-black">N</span>
+              {isRedirecting ? "네이버 로그인으로 이동 중..." : "네이버로 로그인"}
+            </button>
+            <p className="mt-[14px] text-xs text-[#6B7280]">네이버 계정으로 간편하게 로그인하세요</p>
+          </div>
+        </section>
 
-          <LoginForm onLogin={handleLogin} />
-        </div>
+        <p className="mt-[14px] text-center text-xs leading-5 text-black/50">
+          회원이 되고 싶으시다면? <button type="button" className="text-sm font-semibold text-[#30B488] hover:underline">운영진에게 문의하기</button>
+        </p>
       </div>
     </div>
   );
 };
 
-export default Index;
+export default Login;

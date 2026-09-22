@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Bell, User, Menu, ArrowLeft, Images, Upload, Home, CalendarDays, Megaphone, UserCircle, CalendarCheck, Vote, BookOpen, Settings, Loader2, X } from "lucide-react";
 import ComaLogo from "@/components/ComaLogo";
-import { apiFetch, API_BASE } from "@/api/client";
+import { apiFetch } from "@/api/client";
+import { uploadAlbumImages } from "@/api/s3";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface EventOption {
@@ -18,7 +19,7 @@ interface EventMonthlyResponse {
   rewardXp: number;
   location: string;
   category: string;
-  hostNickname: string;
+  hostname: string;
 }
 
 const AlbumUpload = () => {
@@ -81,41 +82,24 @@ const AlbumUpload = () => {
       setUploadMessage("사진을 1장 이상 선택해 주세요.");
       return;
     }
+    if (eventId === "") {
+      setUploadMessage("관련 행사를 선택해 주세요.");
+      return;
+    }
 
     setUploading(true);
     setUploadMessage(null);
 
     try {
-      // multipart/form-data로 전송 (Content-Type 헤더를 브라우저가 자동 설정)
-      const formData = new FormData();
-      formData.append("title", title.trim());
-      if (eventId !== "") formData.append("eventId", String(eventId));
-      selectedFiles.forEach((file) => formData.append("photos", file));
-
-      const token = localStorage.getItem("accessToken");
-      const headers: Record<string, string> = {};
-      if (token && token !== "undefined" && token !== "null") {
-        headers["Authorization"] = `Bearer ${token}`;
-      }
-
-      const res = await fetch(`${API_BASE}/api/event-posts`, {
+      const uploaded = await uploadAlbumImages(selectedFiles);
+      await apiFetch("/api/event-posts", {
         method: "POST",
-        headers,
-        body: formData,
+        body: JSON.stringify({
+          title: title.trim(),
+          eventId,
+          photoUrls: uploaded.map((item) => item.url),
+        }),
       });
-
-      // 401이면 로그인 페이지로
-      if (res.status === 401) {
-        window.location.href = "/";
-        return;
-      }
-
-      if (!res.ok) {
-        const text = await res.text();
-        let json: { message?: string } | null = null;
-        try { json = text ? JSON.parse(text) : null; } catch (_e) {}
-        throw new Error(json?.message ?? `업로드 실패 (${res.status})`);
-      }
 
       setUploadMessage("업로드가 완료되었습니다! 운영진 검토 후 앨범에 추가됩니다.");
       setTitle("");
@@ -200,9 +184,9 @@ const AlbumUpload = () => {
             <input type="text" placeholder="예: 2026 신입생 OT" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-4 py-3 rounded-lg text-sm outline-none" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5", color: "#0F4C3A" }} />
           </div>
           <div className="mb-5">
-            <label className="block text-sm font-medium mb-2" style={{ color: "#0F4C3A" }}>관련 행사 (선택)</label>
+            <label className="block text-sm font-medium mb-2" style={{ color: "#0F4C3A" }}>관련 행사 <span style={{ color: "#EF4444" }}>*</span></label>
             <select value={eventId} onChange={(e) => setEventId(e.target.value === "" ? "" : Number(e.target.value))} className="w-full px-4 py-3 rounded-lg text-sm outline-none" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5", color: eventId === "" ? "#9CA3AF" : "#0F4C3A" }}>
-              <option value="">행사를 선택해 주세요 (선택사항)</option>
+              <option value="">행사를 선택해 주세요</option>
               {events.map((ev) => <option key={ev.eventId} value={ev.eventId}>{ev.title} ({ev.eventDate?.split("T")[0] ?? ev.eventDate})</option>)}
             </select>
           </div>

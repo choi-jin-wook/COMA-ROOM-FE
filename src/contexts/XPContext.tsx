@@ -17,13 +17,7 @@ interface XPContextType {
 
 const XPContext = createContext<XPContextType | undefined>(undefined);
 
-const initialActivities: XPActivity[] = [
-  { id: 1, title: "정기모임 #7", type: "출석", date: "12월 30일", xp: 3 },
-  { id: 2, title: "부원 간 식사 인증", type: "행사", date: "12월 28일", xp: 5 },
-  { id: 3, title: "연말 파티", type: "행사", date: "12월 27일", xp: 5 },
-  { id: 4, title: "2025 운영 방향 투표", type: "투표", date: "12월 26일", xp: 2 },
-  { id: 5, title: "정기모임 #6", type: "출석", date: "12월 23일", xp: 3 },
-];
+const initialActivities: XPActivity[] = [];
 
 const initialTotalXP = initialActivities.reduce((sum, a) => sum + a.xp, 0);
 

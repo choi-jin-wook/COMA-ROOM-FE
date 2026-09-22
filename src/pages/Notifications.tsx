@@ -42,64 +42,7 @@ interface NotificationItem {
 const Notifications = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"all" | "unread">("all");
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      id: 1,
-      type: "xp",
-      title: "XP 획득!",
-      description: "정기모임 #8 출석으로 3 XP를 받았어요",
-      time: "10분 전",
-      isRead: false,
-    },
-    {
-      id: 2,
-      type: "vote",
-      title: "새로운 투표",
-      description: "다음 모임의 주제 투표에 참여해 주세요",
-      time: "1시간 전",
-      isRead: false,
-    },
-    {
-      id: 3,
-      type: "event",
-      title: "다가오는 행사",
-      description: "정기모임 #9가 내일 오후 7시에 있어요",
-      time: "3시간 전",
-      isRead: false,
-    },
-    {
-      id: 4,
-      type: "album",
-      title: "새 앨범",
-      description: "2025 신입생 OT 앨범이 추가되었어요",
-      time: "5시간 전",
-      isRead: true,
-    },
-    {
-      id: 5,
-      type: "manito",
-      title: "마니또 메시지",
-      description: "마니또에게서 새로운 메시지가 도착했어요",
-      time: "1일 전",
-      isRead: true,
-    },
-    {
-      id: 6,
-      type: "achievement",
-      title: "달성!",
-      description: "출석왕 뱃지를 획득했어요",
-      time: "2일 전",
-      isRead: true,
-    },
-    {
-      id: 7,
-      type: "attendance",
-      title: "출석 체크",
-      description: "오늘 출석을 아직 하지 않았어요",
-      time: "3일 전",
-      isRead: true,
-    },
-  ]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
   const filteredNotifications = activeTab === "all" ? notifications : notifications.filter((n) => !n.isRead);
@@ -224,6 +167,7 @@ const Notifications = () => {
         </div>
 
         <div className="space-y-3">
+          {filteredNotifications.length === 0 && <p className="rounded-2xl border bg-card p-8 text-center text-sm text-muted-foreground">{activeTab === "unread" ? "읽지 않은 알림이 없습니다." : "알림이 없습니다."}</p>}
           {filteredNotifications.map((notification) => {
             const iconConfig = getIconConfig(notification.type);
             const IconComponent = iconConfig.icon;
