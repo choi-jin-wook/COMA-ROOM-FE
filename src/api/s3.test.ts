@@ -18,6 +18,7 @@ describe("S3 album upload", () => {
       presignedUrl: "https://bucket.s3.ap-northeast-2.amazonaws.com/albums/1/photo.jpg?X-Amz-Signature=test",
       imageKey: "albums/1/photo.jpg",
       contentType: "image/jpeg",
+      url: "https://objectstorage.ap-tokyo-1.oraclecloud.com/n/test/b/test/o/albums/1/photo.jpg",
     });
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200 });
     vi.stubGlobal("fetch", fetchMock);
@@ -29,7 +30,7 @@ describe("S3 album upload", () => {
       "/api/event-posts/files/presigned-url",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ filename: "photo.jpg" }),
+        body: JSON.stringify({ filename: "photo.jpg", contentType: "image/jpeg" }),
       }),
     );
     expect(fetchMock).toHaveBeenCalledWith(
@@ -41,7 +42,7 @@ describe("S3 album upload", () => {
       },
     );
     expect(result).toEqual({
-      url: "https://bucket.s3.ap-northeast-2.amazonaws.com/albums/1/photo.jpg",
+      url: "https://objectstorage.ap-tokyo-1.oraclecloud.com/n/test/b/test/o/albums/1/photo.jpg",
       imageKey: "albums/1/photo.jpg",
     });
   });
@@ -53,6 +54,7 @@ describe("S3 album upload", () => {
         presignedUrl: `https://bucket.s3.amazonaws.com/albums/${filename}?signature=test`,
         imageKey: `albums/${filename}`,
         contentType: "image/png",
+        url: `https://objectstorage.ap-tokyo-1.oraclecloud.com/n/test/b/test/o/albums/${filename}`,
       };
     });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, status: 200 }));
@@ -77,11 +79,12 @@ describe("S3 album upload", () => {
       presignedUrl: "https://bucket.s3.amazonaws.com/albums/photo.png?signature=test",
       imageKey: "albums/photo.png",
       contentType: "image/png",
+      url: "https://objectstorage.ap-tokyo-1.oraclecloud.com/n/test/b/test/o/albums/photo.png",
     });
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 403 }));
 
     await expect(
       uploadAlbumImage(new File(["image"], "photo.png", { type: "image/png" })),
-    ).rejects.toThrow("S3 사진 업로드에 실패했습니다. (403)");
+    ).rejects.toThrow("OCI 사진 업로드에 실패했습니다. (403)");
   });
 });

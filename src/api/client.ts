@@ -1,4 +1,4 @@
-export const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "https://api.comaroom.site";
+export const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 function authHeaders(token?: string): HeadersInit {
   const t = token ?? localStorage.getItem("accessToken");

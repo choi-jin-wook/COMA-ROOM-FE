@@ -1,10 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import comaLogo from "@/assets/coma-logo.png";
-import kakaoIcon from "@/assets/kakao-icon.svg";
 import { useAuth, type User } from "@/contexts/AuthContext";
-import { API_BASE, apiFetch } from "@/api/client";
+import { apiFetch } from "@/api/client";
 
 function decodeJwtPayload(token: string) {
   try {
@@ -36,6 +35,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const exchangingCodeRef = useRef<string | null>(null);
 
   const completeLogin = useCallback(async ({ accessToken, refreshToken, role: responseRole }: OAuthLoginData) => {
     try {
@@ -64,7 +64,7 @@ const Login = () => {
       navigate(role === "admin" ? "/admin" : "/main", { replace: true });
     } catch (error) {
       toast.error("로그인 실패", {
-        description: error instanceof Error ? error.message : "카카오 로그인 처리에 실패했습니다.",
+        description: error instanceof Error ? error.message : "네이버 로그인 처리에 실패했습니다.",
       });
     }
   }, [login, navigate]);
@@ -72,20 +72,28 @@ const Login = () => {
   useEffect(() => {
     const query = new URLSearchParams(window.location.search);
     const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
-    const accessToken = query.get("accessToken") ?? hash.get("accessToken");
-    if (!accessToken) return;
+    const loginCode = query.get("loginCode") ?? hash.get("loginCode");
+    if (!loginCode || exchangingCodeRef.current === loginCode) return;
 
+    exchangingCodeRef.current = loginCode;
+    setIsRedirecting(true);
     window.history.replaceState({}, document.title, window.location.pathname);
-    void completeLogin({
-      accessToken,
-      refreshToken: query.get("refreshToken") ?? hash.get("refreshToken") ?? undefined,
-      role: query.get("role") ?? hash.get("role") ?? undefined,
-    });
+    void apiFetch<OAuthLoginData>("/api/auth/oauth/exchange", {
+      method: "POST",
+      body: JSON.stringify({ loginCode }),
+    })
+      .then(completeLogin)
+      .catch((error) => {
+        toast.error("로그인 실패", {
+          description: error instanceof Error ? error.message : "네이버 로그인 코드를 교환하지 못했습니다.",
+        });
+      })
+      .finally(() => setIsRedirecting(false));
   }, [completeLogin]);
 
-  const handleKakaoLogin = () => {
+  const handleNaverLogin = () => {
     setIsRedirecting(true);
-    const loginUrl = import.meta.env.VITE_KAKAO_LOGIN_URL || `${API_BASE}/oauth2/authorization/kakao`;
+    const loginUrl = import.meta.env.VITE_NAVER_LOGIN_URL;
     window.location.assign(loginUrl);
   };
 
@@ -108,14 +116,14 @@ const Login = () => {
           <div className="mt-[20px] flex flex-col items-center px-6">
             <button
               type="button"
-              className="flex h-12 w-full items-center justify-center gap-2.5 rounded-[10px] bg-[#FEE500] px-[18px] text-[15px] font-medium text-[#191919] transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-70"
-              onClick={handleKakaoLogin}
+              className="flex h-12 w-full items-center justify-center gap-2.5 rounded-[10px] bg-[#03C75A] px-[18px] text-[15px] font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-70"
+              onClick={handleNaverLogin}
               disabled={isRedirecting}
             >
-              <img src={kakaoIcon} alt="" className="h-5 w-5" />
-              {isRedirecting ? "카카오 로그인으로 이동 중..." : "카카오로 로그인"}
+              <span aria-hidden="true" className="text-lg font-black">N</span>
+              {isRedirecting ? "네이버 로그인으로 이동 중..." : "네이버로 로그인"}
             </button>
-            <p className="mt-[14px] text-xs text-[#6B7280]">카카오 계정으로 간편하게 로그인하세요</p>
+            <p className="mt-[14px] text-xs text-[#6B7280]">네이버 계정으로 간편하게 로그인하세요</p>
           </div>
         </section>
 

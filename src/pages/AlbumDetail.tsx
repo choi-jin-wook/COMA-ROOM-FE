@@ -16,6 +16,11 @@ interface EventPost {
 
 const PHOTOS_PER_PAGE = 6;
 
+const renderPhotoUrl = (url: string) => {
+  const objectStorageOrigin = "https://objectstorage.ap-tokyo-1.oraclecloud.com";
+  return import.meta.env.DEV && url.startsWith(objectStorageOrigin) ? `/oci-images${url.slice(objectStorageOrigin.length)}` : url;
+};
+
 const AlbumDetail = () => {
   const navigate = useNavigate();
   const { id } = useParams();
@@ -36,7 +41,7 @@ const AlbumDetail = () => {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: "#F8FFFE" }}>
-      {lightboxIdx !== null && <div className="fixed inset-0 z-[200] flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.9)" }} onClick={() => setLightboxIdx(null)}><button className="absolute top-4 right-4 text-white z-10" onClick={() => setLightboxIdx(null)}><X className="w-8 h-8" /></button>{lightboxIdx > 0 && <button className="absolute left-4 text-white z-10" onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx - 1); }}><ChevronLeft className="w-8 h-8" /></button>}<img src={photos[lightboxIdx]} alt={`photo-${lightboxIdx + 1}`} className="max-w-full max-h-full object-contain px-16" onClick={(e) => e.stopPropagation()} />{lightboxIdx < photos.length - 1 && <button className="absolute right-4 text-white z-10" onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx + 1); }}><ChevronRight className="w-8 h-8" /></button>}<div className="absolute bottom-4 text-white text-sm opacity-70">{lightboxIdx + 1} / {photos.length}</div></div>}
+      {lightboxIdx !== null && <div className="fixed inset-0 z-[200] flex items-center justify-center" style={{ backgroundColor: "rgba(0,0,0,0.9)" }} onClick={() => setLightboxIdx(null)}><button className="absolute top-4 right-4 text-white z-10" onClick={() => setLightboxIdx(null)}><X className="w-8 h-8" /></button>{lightboxIdx > 0 && <button className="absolute left-4 text-white z-10" onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx - 1); }}><ChevronLeft className="w-8 h-8" /></button>}<img src={renderPhotoUrl(photos[lightboxIdx])} alt={`photo-${lightboxIdx + 1}`} className="max-w-full max-h-full object-contain px-16" onClick={(e) => e.stopPropagation()} />{lightboxIdx < photos.length - 1 && <button className="absolute right-4 text-white z-10" onClick={(e) => { e.stopPropagation(); setLightboxIdx(lightboxIdx + 1); }}><ChevronRight className="w-8 h-8" /></button>}<div className="absolute bottom-4 text-white text-sm opacity-70">{lightboxIdx + 1} / {photos.length}</div></div>}
 
       <header className="sticky top-0 z-50 px-4 py-3" style={{ backgroundColor: "#10B981" }}>
         <div className="flex items-center justify-between">
@@ -70,7 +75,7 @@ const AlbumDetail = () => {
           </div>
           <h2 className="font-bold mb-3" style={{ color: "#0F4C3A" }}>사진</h2>
           {photos.length === 0 ? <div className="rounded-xl p-8 text-center" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}><Images className="w-12 h-12 mx-auto mb-2" style={{ color: "#D1FAE5" }} /><p className="text-sm" style={{ color: "#6B7280" }}>등록된 사진이 없습니다.</p></div> : <>
-            <div className="grid grid-cols-2 gap-3 mb-4">{paginatedPhotos.map((url, index) => { const globalIdx = (currentPage - 1) * PHOTOS_PER_PAGE + index; return <div key={index} className="aspect-[4/3] rounded-xl overflow-hidden cursor-pointer" style={{ backgroundColor: "#F0FDF4" }} onClick={() => setLightboxIdx(globalIdx)}><img src={url} alt={`photo-${globalIdx + 1}`} className="w-full h-full object-cover" /></div>; })}</div>
+            <div className="grid grid-cols-1 gap-3 mb-4">{paginatedPhotos.map((url, index) => { const globalIdx = (currentPage - 1) * PHOTOS_PER_PAGE + index; return <div key={index} className="aspect-[4/3] rounded-xl overflow-hidden cursor-pointer" style={{ backgroundColor: "#F0FDF4" }} onClick={() => setLightboxIdx(globalIdx)}><img src={renderPhotoUrl(url)} alt={`photo-${globalIdx + 1}`} className="w-full h-full object-cover" /></div>; })}</div>
             {totalPages > 1 && <div className="flex items-center justify-center gap-2 mb-6"><button className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FFFFFF", border: "1px solid #E2E2E2" }} onClick={() => setCurrentPage(Math.max(1, currentPage - 1))} disabled={currentPage === 1}><ChevronLeft className="w-4 h-4" style={{ color: "#6B7280" }} /></button>{Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => <button key={page} className="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-medium" style={{ backgroundColor: currentPage === page ? "#10B981" : "#FFFFFF", color: currentPage === page ? "#FFFFFF" : "#6B7280", border: currentPage === page ? "none" : "1px solid #E2E2E2" }} onClick={() => setCurrentPage(page)}>{page}</button>)}<button className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: "#FFFFFF", border: "1px solid #E2E2E2" }} onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))} disabled={currentPage === totalPages}><ChevronRight className="w-4 h-4" style={{ color: "#6B7280" }} /></button></div>}
           </>}
         </>}

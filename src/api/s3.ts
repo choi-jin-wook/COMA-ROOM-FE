@@ -9,6 +9,7 @@ interface PresignedUrlResponse {
   presignedUrl: string;
   imageKey: string;
   contentType?: string;
+  url: string;
 }
 
 interface UploadFilesOptions {
@@ -30,7 +31,10 @@ export function sortPhotoUrls(photoUrls: string[]): string[] {
 export async function uploadAlbumImage(file: File): Promise<S3UploadResult> {
   const upload = await apiFetch<PresignedUrlResponse>("/api/event-posts/files/presigned-url", {
     method: "POST",
-    body: JSON.stringify({ filename: file.name }),
+    body: JSON.stringify({
+      filename: file.name,
+      contentType: file.type || "application/octet-stream",
+    }),
   });
 
   const response = await fetch(upload.presignedUrl, {
@@ -40,10 +44,10 @@ export async function uploadAlbumImage(file: File): Promise<S3UploadResult> {
   });
 
   if (!response.ok) {
-    throw new Error(`S3 사진 업로드에 실패했습니다. (${response.status})`);
+    throw new Error(`OCI 사진 업로드에 실패했습니다. (${response.status})`);
   }
 
-  return { url: upload.presignedUrl.split("?")[0], imageKey: upload.imageKey };
+  return { url: upload.url, imageKey: upload.imageKey };
 }
 
 export async function uploadAlbumImages(files: File[], options: UploadFilesOptions = {}): Promise<S3UploadResult[]> {
