@@ -1,11 +1,11 @@
 // ===================================================
 // 관리자 출석 관리 페이지
-// - 이벤트 생성 + QR 코드 발급으로 출석 세션 시작
+// - 기존 이벤트 선택 + QR 코드 발급으로 출석 세션 시작
 // - 진행 중 세션은 QR 코드를 화면에 표시 (부원이 스캔)
 // - 세션 종료 시 완료 기록으로 저장
 // - 유형 필터 / 페이지네이션으로 기록 목록 관리
 // - 기록 삭제 / 상세보기(출석자 명단) 기능
-// - POST /api/admin/event → 이벤트 생성
+// - GET /api/event/monthly → 생성된 이벤트 조회
 // - POST /api/admin/event/attendances → QR 코드 발급
 // - GET /api/admin/member/manage → 전체/활성 부원 수 조회
 // ===================================================
@@ -21,6 +21,7 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import ComaLogo from "@/components/ComaLogo";
 import { apiFetch } from "@/api/client";
+import { getEventsByMonth, type AdminEvent } from "@/api/events";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -80,16 +81,6 @@ interface AttendanceRecord {
   attendeeList: Attendee[];
 }
 
-type CreateEventResponse = {
-  eventId: number;
-  title: string;
-  eventDate: string;
-  rewardXp: number;
-  location: string;
-  category: string;
-  hostname: string;
-};
-
 type CreateAttendanceResponse = {
   qrCodeId: string;
 };
@@ -115,6 +106,11 @@ const Admin_Attendance = () => {
   const [eventDate, setEventDate] = useState<string>(
     new Date().toISOString().split("T")[0]
   );
+  const [events, setEvents] = useState<AdminEvent[]>([]);
+  const [selectedEventId, setSelectedEventId] = useState("");
+  const [expirationTime, setExpirationTime] = useState("10");
+  const [eventsLoading, setEventsLoading] = useState(true);
+  const [eventsError, setEventsError] = useState("");
   // 세션 시작 시각 (종료 시 소요 시간 계산용)
   const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
   // 완료된 출석 세션 기록 목록 (클라이언트 측 관리)
@@ -146,6 +142,28 @@ const Admin_Attendance = () => {
   }, []);
 
   useEffect(() => {
+    const now = new Date();
+    setEventsLoading(true);
+    getEventsByMonth(now.getFullYear(), now.getMonth() + 1)
+      .then((items) => setEvents(items ?? []))
+      .catch((error) => setEventsError(error instanceof Error ? error.message : "이벤트를 불러오지 못했습니다."))
+      .finally(() => setEventsLoading(false));
+  }, []);
+
+  const selectEvent = (eventId: string) => {
+    setSelectedEventId(eventId);
+    const selected = events.find((event) => String(event.eventId) === eventId);
+    if (!selected) return;
+
+    const category = selected.eventCategory ?? selected.category ?? "EVENT";
+    const activity = ACTIVITY_TYPES.find((item) => item.category === category)?.value ?? "기타";
+    setActivityName(selected.title);
+    setActivityType(activity as ActivityType);
+    setLocation(selected.location ?? "");
+    setEventDate(selected.eventDate?.split("T")[0] ?? "");
+  };
+
+  useEffect(() => {
     if (!isSessionActive || activeEventId === null) return;
     const refreshAttendance = () => {
       apiFetch<ApiAttendee[]>(`/api/admin/event/${activeEventId}/attendances`)
@@ -167,37 +185,23 @@ const Admin_Attendance = () => {
   const totalPages = Math.ceil(filteredRecords.length / 3) || 1;
 
   // 출석 세션 시작
-  // 1. POST /api/admin/event - 이벤트 생성
-  // 2. POST /api/admin/event/attendances - QR 코드 발급 (유효시간 10분)
+  // 1. 미리 생성된 이벤트 선택
+  // 2. POST /api/admin/event/attendances - 선택한 eventId로 QR 코드 발급
   // 3. 세션 활성화 상태로 전환
   const handleStartSession = async () => {
-    if (!activityName.trim()) return;
+    const selectedEvent = events.find((event) => String(event.eventId) === selectedEventId);
+    const expirationMinutes = Number(expirationTime);
+    if (!selectedEvent || !Number.isInteger(expirationMinutes) || expirationMinutes < 1) return;
 
     try {
       setIsSubmitting(true);
-
-      const category = ACTIVITY_TYPES.find((t) => t.value === activityType)?.category ?? "REGULAR_MEETING";
-
-      const eventRes = await apiFetch<CreateEventResponse>("/api/admin/event", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: activityName.trim(),
-          eventDate: `${eventDate}T00:00:00`,
-          rewardXp: 3,
-          location: location.trim() || "미정",
-          eventCategory: category,
-        }),
-      });
-
-      const createdEventId = eventRes.eventId;
 
       const attendanceRes = await apiFetch<CreateAttendanceResponse>("/api/admin/event/attendances", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          eventId: createdEventId,
-          expirationTime: 10,
+          eventId: selectedEvent.eventId,
+          expirationTime: expirationMinutes,
         }),
       });
 
@@ -205,7 +209,7 @@ const Admin_Attendance = () => {
 
       setSessionId(createdQrCodeId);
       setQrCodeId(createdQrCodeId);
-      setActiveEventId(createdEventId);
+      setActiveEventId(selectedEvent.eventId);
       setCurrentAttendees(0);
       setSessionStartTime(new Date());
       setIsSessionActive(true);
@@ -253,6 +257,8 @@ const Admin_Attendance = () => {
     setActivityType("정기회의");
     setLocation("");
     setEventDate(new Date().toISOString().split("T")[0]);
+    setSelectedEventId("");
+    setExpirationTime("10");
     setSessionStartTime(null);
   };
 
@@ -398,66 +404,67 @@ const Admin_Attendance = () => {
                 <QrCode className="w-8 h-8" style={{ color: "#10B981" }} />
               </div>
               <h2 className="font-bold text-lg mb-2" style={{ color: "#0F4C3A" }}>출석 세션 시작하기</h2>
-              <p className="text-sm mb-4" style={{ color: "#6B7280" }}>활동명을 입력하고 버튼을 클릭하면 QR 코드가 생성됩니다</p>
+              <p className="text-sm mb-4" style={{ color: "#6B7280" }}>미리 생성한 이벤트를 선택하고 QR 유효시간을 설정하세요</p>
             </div>
 
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2" style={{ color: "#0F4C3A" }}>활동 유형</label>
-              <Select value={activityType} onValueChange={(value) => setActivityType(value as ActivityType)}>
+              <div className="mb-2 flex items-center justify-between">
+                <label className="block text-sm font-medium" style={{ color: "#0F4C3A" }}>이벤트 선택</label>
+                <button type="button" onClick={() => navigate("/admin/events/new")} className="text-xs font-medium text-[#10B981] hover:underline">
+                  이벤트 먼저 만들기
+                </button>
+              </div>
+              <Select value={selectedEventId} onValueChange={selectEvent} disabled={eventsLoading}>
                 <SelectTrigger
-                  className="w-full px-4 py-3 h-auto rounded-xl text-sm border-0 focus:ring-2 focus:ring-[#10B981]"
+                  className="w-full px-4 py-3 h-auto rounded-xl text-sm border border-[#D1FAE5] focus:ring-2 focus:ring-[#10B981]"
                   style={{ backgroundColor: "#FFFFFF", color: "#0F4C3A" }}
                 >
-                  <SelectValue placeholder="활동 유형 선택" />
+                  <SelectValue placeholder={eventsLoading ? "이벤트를 불러오는 중..." : "이벤트를 선택해 주세요"} />
                 </SelectTrigger>
                 <SelectContent>
-                  {ACTIVITY_TYPES.map((type) => (
-                    <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                  {events.map((event) => (
+                    <SelectItem key={event.eventId} value={String(event.eventId)}>
+                      {event.title} · {event.eventDate?.replace("T", " ").slice(0, 16)}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              {eventsError && <p className="mt-2 text-xs text-red-600">{eventsError}</p>}
+              {!eventsLoading && !eventsError && events.length === 0 && (
+                <p className="mt-2 text-xs text-[#6B7280]">이번 달에 생성된 이벤트가 없습니다.</p>
+              )}
             </div>
 
+            {selectedEventId && (
+              <div className="mb-4 rounded-xl border border-[#D1FAE5] bg-white p-4 text-sm">
+                <p className="font-semibold text-[#0F4C3A]">{activityName}</p>
+                <p className="mt-1 text-xs text-[#6B7280]">{eventDate} · {location || "장소 미정"}</p>
+              </div>
+            )}
+
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-2" style={{ color: "#0F4C3A" }}>활동명</label>
+              <label className="block text-sm font-medium mb-2" style={{ color: "#0F4C3A" }}>QR 유효시간(분)</label>
               <input
-                type="text"
-                value={activityName}
-                onChange={(e) => setActivityName(e.target.value)}
-                placeholder="예: 정기모임 #9, 스터디, 워크샵"
-                className="w-full px-4 py-3 rounded-xl text-sm border-0 focus:outline-none focus:ring-2 focus:ring-[#10B981]"
+                type="number"
+                min={1}
+                step={1}
+                value={expirationTime}
+                onChange={(e) => setExpirationTime(e.target.value)}
+                placeholder="분 단위로 입력하세요"
+                className="w-full px-4 py-3 rounded-xl text-sm border border-[#D1FAE5] focus:outline-none focus:ring-2 focus:ring-[#10B981]"
                 style={{ backgroundColor: "#FFFFFF", color: "#0F4C3A" }}
               />
             </div>
 
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2" style={{ color: "#0F4C3A" }}>날짜</label>
-              <input
-                type="date"
-                value={eventDate}
-                onChange={(e) => setEventDate(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl text-sm border-0 focus:outline-none focus:ring-2 focus:ring-[#10B981]"
-                style={{ backgroundColor: "#FFFFFF", color: "#0F4C3A" }}
-              />
-            </div>
-
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-2" style={{ color: "#0F4C3A" }}>장소</label>
-              <input
-                type="text"
-                value={location}
-                onChange={(e) => setLocation(e.target.value)}
-                placeholder="예: 서울시 강남구 테헤란로 ..."
-                className="w-full px-4 py-3 rounded-xl text-sm border-0 focus:outline-none focus:ring-2 focus:ring-[#10B981]"
-                style={{ backgroundColor: "#FFFFFF", color: "#0F4C3A" }}
-              />
-            </div>
+            <p className="mb-4 rounded-xl bg-[#F0FDF4] p-3 text-xs text-[#6B7280]">
+              선택한 이벤트에 출석 세션이 연결됩니다. 새로운 이벤트는 여기서 생성하지 않습니다.
+            </p>
 
             <button
               className="w-full inline-flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ backgroundColor: "#10B981", color: "#FFFFFF" }}
               onClick={handleStartSession}
-              disabled={!activityName.trim() || isSubmitting}
+              disabled={!selectedEventId || !Number.isInteger(Number(expirationTime)) || Number(expirationTime) < 1 || isSubmitting}
             >
               <Play className="w-4 h-4" />
               {isSubmitting ? "생성 중..." : "출석 시작하기"}
