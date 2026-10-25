@@ -31,6 +31,7 @@ import {
 import ComaLogo from "@/components/ComaLogo";
 import { useNavigate } from "react-router-dom";
 import { Html5Qrcode } from "html5-qrcode";
+import { AttendanceCamera, type CameraCapabilities, type CameraSettings } from "@/lib/attendance-camera";
 import { apiFetch } from "@/api/client";
 import {
   DropdownMenu,
@@ -57,20 +58,15 @@ type CameraZoomRange = {
   step: number;
 };
 
-type ZoomCapabilities = MediaTrackCapabilities & {
-  zoom?: CameraZoomRange;
-};
-
-type ZoomSettings = MediaTrackSettings & {
-  zoom?: number;
-};
-
 const AttendanceVerify = () => {
   const navigate = useNavigate();
 
   // html5-qrcode 인스턴스 참조 (컴포넌트 언마운트 시 정리용)
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const cameraRef = useRef<AttendanceCamera | null>(null);
+  const stoppingRef = useRef<Promise<void>>(Promise.resolve());
   const zoomRef = useRef(1);
+  const zoomBusyRef = useRef(false);
 
   // 현재 스캔 상태
   const [scanState, setScanState] = useState<ScanState>("idle");
@@ -86,31 +82,37 @@ const AttendanceVerify = () => {
   const [zoom, setZoom] = useState(1);
   const [isApplyingZoom, setIsApplyingZoom] = useState(false);
   const [zoomNotice, setZoomNotice] = useState<string | null>(null);
+  const [cameraSettings, setCameraSettings] = useState<CameraSettings | null>(null);
+
+  const refreshCameraSettings = (scanner: Html5Qrcode) => {
+    try {
+      const settings = scanner.getRunningTrackSettings() as CameraSettings;
+      setCameraSettings({ width: settings.width, height: settings.height, zoom: settings.zoom, focusMode: settings.focusMode });
+    } catch {
+      setCameraSettings(null);
+    }
+  };
 
   // 카메라(QR 스캐너) 중지 및 정리
   const stopScanner = async () => {
-    if (scannerRef.current) {
-      try {
-        const state = scannerRef.current.getState();
-        // state === 2: SCANNING 상태일 때만 stop 호출
-        if (state === 2) {
-          await scannerRef.current.stop();
-        }
-        scannerRef.current.clear();
-      } catch {
-        // 이미 중지된 경우 무시
-      }
-      scannerRef.current = null;
-    }
+    const camera = cameraRef.current;
+    cameraRef.current = null;
+    scannerRef.current = null;
+    if (camera) stoppingRef.current = camera.stop();
     setZoomRange(null);
     setZoomNotice(null);
+    setCameraSettings(null);
+    zoomBusyRef.current = false;
+    setIsApplyingZoom(false);
     zoomRef.current = 1;
     setZoom(1);
+    await stoppingRef.current;
   };
 
   const changeZoom = async (direction: 1 | -1) => {
     const scanner = scannerRef.current;
-    if (!scanner || !zoomRange || isApplyingZoom) return;
+    const camera = cameraRef.current;
+    if (!scanner || !camera || !zoomRange || zoomBusyRef.current) return;
 
     const nextZoom = Math.min(
       zoomRange.max,
@@ -118,15 +120,15 @@ const AttendanceVerify = () => {
     );
     if (Math.abs(nextZoom - zoomRef.current) < Number.EPSILON) return;
 
+    zoomBusyRef.current = true;
     setIsApplyingZoom(true);
     try {
-      await scanner.applyVideoConstraints({
-        advanced: [{ zoom: nextZoom }],
-      } as unknown as MediaTrackConstraints);
+      await camera.applyZoom(nextZoom);
       if (scannerRef.current !== scanner) return;
+      refreshCameraSettings(scanner);
 
       // 일부 브라우저는 지원하지 않는 제약도 성공으로 반환하므로 실제 배율 확인
-      const appliedZoom = (scanner.getRunningTrackSettings() as ZoomSettings).zoom;
+      const appliedZoom = (scanner.getRunningTrackSettings() as CameraSettings).zoom;
       if (typeof appliedZoom !== "number" || !Number.isFinite(appliedZoom) || Math.abs(appliedZoom - zoomRef.current) < Number.EPSILON) {
         setZoomRange(null);
         setZoomNotice("카메라 줌을 사용할 수 없어 현재 배율로 QR 인식을 계속합니다.");
@@ -136,46 +138,37 @@ const AttendanceVerify = () => {
       setZoom(appliedZoom);
     } catch {
       if (scannerRef.current !== scanner) return;
+      refreshCameraSettings(scanner);
       setZoomRange(null);
       setZoomNotice("카메라 줌을 사용할 수 없어 현재 배율로 QR 인식을 계속합니다.");
     } finally {
-      setIsApplyingZoom(false);
+      if (cameraRef.current === camera) {
+        zoomBusyRef.current = false;
+        setIsApplyingZoom(false);
+      }
     }
   };
 
   // 카메라 시작 및 QR 스캔 활성화
   const startScanner = async () => {
+    if (cameraRef.current) return;
+    const camera = new AttendanceCamera();
+    cameraRef.current = camera;
     setErrorMessage(null);
     setZoomNotice(null);
     setScanState("scanning");
 
     try {
-      // 모바일 브라우저에서 카메라 권한 다이얼로그를 반드시 표시하기 위해
-      // html5-qrcode 시작 전 getUserMedia로 명시적 권한 요청 후 스트림 즉시 해제
-      if (navigator.mediaDevices?.getUserMedia) {
-        const tempStream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" },
-        });
-        // 권한 확인 용도이므로 html5-qrcode와 충돌하지 않게 즉시 해제
-        tempStream.getTracks().forEach((track) => track.stop());
-      }
-
-      const scanner = new Html5Qrcode("qr-reader");
+      const scanner = await camera.start((decodedText) => {
+        if (cameraRef.current === camera) void handleScanResult(decodedText);
+      }, stoppingRef.current);
+      if (!scanner || cameraRef.current !== camera) return;
       scannerRef.current = scanner;
-
-      await scanner.start(
-        { facingMode: "environment" }, // 후면 카메라 사용
-        { fps: 10, qrbox: { width: 240, height: 240 } },
-        (decodedText) => {
-          // QR 코드 인식 시 처리
-          handleScanResult(decodedText);
-        },
-        () => {} // 인식 실패 프레임은 무시
-      );
+      refreshCameraSettings(scanner);
 
       try {
-        const capabilities = scanner.getRunningTrackCapabilities() as ZoomCapabilities;
-        const settings = scanner.getRunningTrackSettings() as ZoomSettings;
+        const capabilities = scanner.getRunningTrackCapabilities() as CameraCapabilities;
+        const settings = scanner.getRunningTrackSettings() as CameraSettings;
         const supportedZoom = capabilities.zoom;
 
         if (
@@ -205,6 +198,8 @@ const AttendanceVerify = () => {
 
       setCameraPermission(true);
     } catch (err: unknown) {
+      if (cameraRef.current !== camera) return;
+      await stopScanner();
       const msg = err instanceof Error ? err.message : String(err);
       if (
         msg.toLowerCase().includes("permission") ||
@@ -269,7 +264,6 @@ const AttendanceVerify = () => {
     return () => {
       stopScanner();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 완료 모달 확인 버튼 - 출석 기록 페이지로 이동
@@ -459,6 +453,27 @@ const AttendanceVerify = () => {
           <p role="status" className="rounded-xl bg-[#F0FDF4] p-3 text-sm text-[#0F4C3A]">
             {zoomNotice}
           </p>
+        )}
+
+        {scanState === "scanning" && (
+          <details className="rounded-xl border border-[#D1FAE5] bg-white p-3 text-sm text-[#0F4C3A]">
+            <summary className="cursor-pointer font-medium">카메라 정보</summary>
+            <dl className="mt-3 grid grid-cols-2 gap-2" aria-live="polite">
+              <dt>실제 해상도</dt>
+              <dd>{cameraSettings?.width && cameraSettings?.height
+                ? `${cameraSettings.width} × ${cameraSettings.height}` : "확인 불가"}</dd>
+              <dt>실제 줌 배율</dt>
+              <dd>{typeof cameraSettings?.zoom === "number" && Number.isFinite(cameraSettings.zoom)
+                ? `${cameraSettings.zoom.toFixed(1)}배` : "브라우저에서 제공하지 않음"}</dd>
+              <dt>초점 모드</dt>
+              <dd>{cameraSettings?.focusMode === "continuous" ? "연속 자동 초점"
+                : cameraSettings?.focusMode === "single-shot" ? "단일 자동 초점"
+                : cameraSettings?.focusMode === "manual" ? "수동 초점"
+                : cameraSettings?.focusMode === "none" ? "고정 초점"
+                : cameraSettings?.focusMode || "브라우저에서 제공하지 않음"}</dd>
+            </dl>
+            <p className="mt-3 text-xs text-gray-500">1080p를 우선 요청하며, 실제 해상도는 기기와 브라우저에 따라 달라집니다. 줌 배율만으로 광학 줌 여부를 알 수는 없습니다.</p>
+          </details>
         )}
 
         {/* 에러 메시지 배너 */}
