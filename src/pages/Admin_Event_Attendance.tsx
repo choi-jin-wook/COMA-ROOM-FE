@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { QRCodeSVG } from "qrcode.react";
+import AttendanceQrCode from "@/components/AttendanceQrCode";
+import AttendanceQrFullscreen from "@/components/AttendanceQrFullscreen";
 import AdminShell from "@/components/AdminShell";
 import { apiFetch } from "@/api/client";
 import { getAdminEvent, type AdminEvent } from "@/api/events";
@@ -46,6 +47,6 @@ export default function Admin_Event_Attendance() {
     </div>
     <p className="rounded-[10px] bg-muted p-3 text-[11px] text-muted-foreground">선택한 이벤트에 출석 세션이 연결됩니다. QR 유효시간만 설정하세요.</p>
     {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-xs text-red-600">{error}</p>}
-    {qrCode ? <section className="space-y-3 rounded-[14px] border bg-card p-4 text-center"><h2 className="font-bold">출석 진행 중</h2><QRCodeSVG value={qrCode} size={220} className="mx-auto h-auto max-w-full" /><p className="text-xs text-muted-foreground">QR 코드를 스캔하여 출석해주세요 · 유효시간 {minutes}분</p></section> : <div className="grid grid-cols-2 gap-2"><Link to={`/admin/events/${id}`} state={{ event }} className="rounded-lg border bg-card py-2 text-center text-xs text-muted-foreground">취소</Link><button disabled={!event || submitting} className="rounded-lg bg-[#10B981] py-2 text-xs font-medium text-white disabled:opacity-50">{submitting ? "생성 중..." : "출석 생성"}</button></div>}
+    {qrCode ? <section className="space-y-3 rounded-[14px] border bg-card p-4 text-center"><h2 className="font-bold">출석 진행 중</h2><AttendanceQrCode value={qrCode} /><AttendanceQrFullscreen value={qrCode} title={event?.title} /><p className="text-xs text-muted-foreground">QR 코드를 스캔하여 출석해주세요 · 유효시간 {minutes}분</p></section> : <div className="grid grid-cols-2 gap-2"><Link to={`/admin/events/${id}`} state={{ event }} className="rounded-lg border bg-card py-2 text-center text-xs text-muted-foreground">취소</Link><button disabled={!event || submitting} className="rounded-lg bg-[#10B981] py-2 text-xs font-medium text-white disabled:opacity-50">{submitting ? "생성 중..." : "출석 생성"}</button></div>}
   </form></AdminShell>;
 }

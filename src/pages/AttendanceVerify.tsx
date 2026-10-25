@@ -25,8 +25,6 @@ import {
   ChevronLeft,
   Camera,
   AlertCircle,
-  Plus,
-  Minus,
 } from "lucide-react";
 import ComaLogo from "@/components/ComaLogo";
 import { useNavigate } from "react-router-dom";
@@ -67,6 +65,7 @@ const AttendanceVerify = () => {
   const stoppingRef = useRef<Promise<void>>(Promise.resolve());
   const zoomRef = useRef(1);
   const zoomBusyRef = useRef(false);
+  const pendingZoomRef = useRef<number | null>(null);
 
   // 현재 스캔 상태
   const [scanState, setScanState] = useState<ScanState>("idle");
@@ -80,7 +79,6 @@ const AttendanceVerify = () => {
   const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
   const [zoomRange, setZoomRange] = useState<CameraZoomRange | null>(null);
   const [zoom, setZoom] = useState(1);
-  const [isApplyingZoom, setIsApplyingZoom] = useState(false);
   const [zoomNotice, setZoomNotice] = useState<string | null>(null);
   const [cameraSettings, setCameraSettings] = useState<CameraSettings | null>(null);
 
@@ -103,39 +101,45 @@ const AttendanceVerify = () => {
     setZoomNotice(null);
     setCameraSettings(null);
     zoomBusyRef.current = false;
-    setIsApplyingZoom(false);
+    pendingZoomRef.current = null;
     zoomRef.current = 1;
     setZoom(1);
     await stoppingRef.current;
   };
 
-  const changeZoom = async (direction: 1 | -1) => {
+  const changeZoom = async (value: number) => {
     const scanner = scannerRef.current;
     const camera = cameraRef.current;
-    if (!scanner || !camera || !zoomRange || zoomBusyRef.current) return;
+    if (!scanner || !camera || !zoomRange) return;
 
     const nextZoom = Math.min(
       zoomRange.max,
-      Math.max(zoomRange.min, zoomRef.current + direction * zoomRange.step)
+      Math.max(zoomRange.min, value)
     );
-    if (Math.abs(nextZoom - zoomRef.current) < Number.EPSILON) return;
+    setZoom(nextZoom);
+    pendingZoomRef.current = nextZoom;
+    if (zoomBusyRef.current) return;
 
     zoomBusyRef.current = true;
-    setIsApplyingZoom(true);
     try {
-      await camera.applyZoom(nextZoom);
-      if (scannerRef.current !== scanner) return;
-      refreshCameraSettings(scanner);
+      while (pendingZoomRef.current !== null) {
+        const requestedZoom = pendingZoomRef.current;
+        pendingZoomRef.current = null;
+        if (Math.abs(requestedZoom - zoomRef.current) < Number.EPSILON) continue;
+        await camera.applyZoom(requestedZoom);
+        if (scannerRef.current !== scanner) return;
+        refreshCameraSettings(scanner);
 
-      // 일부 브라우저는 지원하지 않는 제약도 성공으로 반환하므로 실제 배율 확인
-      const appliedZoom = (scanner.getRunningTrackSettings() as CameraSettings).zoom;
-      if (typeof appliedZoom !== "number" || !Number.isFinite(appliedZoom) || Math.abs(appliedZoom - zoomRef.current) < Number.EPSILON) {
-        setZoomRange(null);
-        setZoomNotice("카메라 줌을 사용할 수 없어 현재 배율로 QR 인식을 계속합니다.");
-        return;
+        // 일부 브라우저는 지원하지 않는 제약도 성공으로 반환하므로 실제 배율 확인
+        const appliedZoom = (scanner.getRunningTrackSettings() as CameraSettings).zoom;
+        if (typeof appliedZoom !== "number" || !Number.isFinite(appliedZoom) || Math.abs(appliedZoom - zoomRef.current) < Number.EPSILON) {
+          setZoomRange(null);
+          setZoomNotice("카메라 줌을 사용할 수 없어 현재 배율로 QR 인식을 계속합니다.");
+          return;
+        }
+        zoomRef.current = appliedZoom;
+        if (pendingZoomRef.current === null) setZoom(appliedZoom);
       }
-      zoomRef.current = appliedZoom;
-      setZoom(appliedZoom);
     } catch {
       if (scannerRef.current !== scanner) return;
       refreshCameraSettings(scanner);
@@ -144,7 +148,7 @@ const AttendanceVerify = () => {
     } finally {
       if (cameraRef.current === camera) {
         zoomBusyRef.current = false;
-        setIsApplyingZoom(false);
+        pendingZoomRef.current = null;
       }
     }
   };
@@ -370,33 +374,6 @@ const AttendanceVerify = () => {
               </div>
             )}
 
-            {scanState === "scanning" && (
-              <div className="absolute right-4 bottom-4 z-20 flex flex-col gap-2">
-                <button
-                  type="button"
-                  aria-label="카메라 확대"
-                  title={zoomRange ? `카메라 확대 (${zoom.toFixed(1)}배)` : "이 기기는 카메라 줌을 지원하지 않습니다"}
-                  disabled={!zoomRange || zoom >= zoomRange.max || isApplyingZoom}
-                  onClick={() => changeZoom(1)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
-                  style={{ backgroundColor: "#F0FDF4", color: "#10B981" }}
-                >
-                  <Plus className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  aria-label="카메라 축소"
-                  title={zoomRange ? `카메라 축소 (${zoom.toFixed(1)}배)` : "이 기기는 카메라 줌을 지원하지 않습니다"}
-                  disabled={!zoomRange || zoom <= zoomRange.min || isApplyingZoom}
-                  onClick={() => changeZoom(-1)}
-                  className="flex h-8 w-8 items-center justify-center rounded-full transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
-                  style={{ backgroundColor: "#F0FDF4", color: "#10B981" }}
-                >
-                  <Minus className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-
             {/* verifying: 서버 인증 중 로딩 오버레이 */}
             {scanState === "verifying" && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" style={{ backgroundColor: "rgba(15,76,58,0.85)" }}>
@@ -428,6 +405,33 @@ const AttendanceVerify = () => {
               </div>
             )}
           </div>
+
+          {scanState === "scanning" && (
+            <div className="border-t border-[#D1FAE5] px-5 py-3 text-sm text-[#0F4C3A]">
+              <div className="flex items-center justify-between">
+                <label htmlFor="camera-zoom" className="font-medium">카메라 줌</label>
+                <span className="tabular-nums">{zoomRange ? `${zoom.toFixed(1)}×` : "사용 불가"}</span>
+              </div>
+              <input
+                id="camera-zoom"
+                type="range"
+                min={zoomRange?.min ?? 1}
+                max={zoomRange?.max ?? 1}
+                step={zoomRange?.step ?? 0.1}
+                value={zoom}
+                aria-valuetext={`${zoom.toFixed(1)}배`}
+                disabled={!zoomRange}
+                onChange={(event) => void changeZoom(Number(event.target.value))}
+                className="block h-11 w-full cursor-pointer accent-[#10B981] disabled:cursor-not-allowed disabled:opacity-40"
+              />
+              {zoomRange && (
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>{zoomRange.min.toFixed(1)}×</span>
+                  <span>{zoomRange.max.toFixed(1)}×</span>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 카메라 하단 상태 텍스트 */}
           <div className="px-4 py-3 text-center" style={{ borderTop: "1px solid #D1FAE5" }}>

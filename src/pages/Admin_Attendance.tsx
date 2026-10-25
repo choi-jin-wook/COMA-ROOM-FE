@@ -18,7 +18,8 @@ import {
   ClipboardCheck, Megaphone, ChevronLeft, ChevronRight,
   Play, Clock, QrCode, StopCircle, Trash2, UserPlus, UserMinus,
 } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
+import AttendanceQrCode from "@/components/AttendanceQrCode";
+import AttendanceQrFullscreen from "@/components/AttendanceQrFullscreen";
 import ComaLogo from "@/components/ComaLogo";
 import { apiFetch } from "@/api/client";
 import { getEventsByMonth, type AdminEvent } from "@/api/events";
@@ -487,7 +488,10 @@ const Admin_Attendance = () => {
             </div>
 
             <div className="rounded-xl p-6 mb-4 flex flex-col items-center" style={{ backgroundColor: "#FFFFFF" }}>
-              <QRCodeSVG value={qrCodeId} size={200} level="H" fgColor="#10B981" bgColor="#FFFFFF" className="mb-4" />
+              <AttendanceQrCode value={qrCodeId} className="mb-4" />
+              <div className="mb-4">
+                <AttendanceQrFullscreen value={qrCodeId} title={activityName} />
+              </div>
               <p className="text-sm mb-2" style={{ color: "#6B7280" }}>QR 코드를 스캔하여 출석해주세요</p>
               <span className="inline-flex items-center px-3 py-1.5 rounded-full text-xs break-all" style={{ backgroundColor: "#F3F4F6", color: "#6B7280" }}>
                 {sessionId}
