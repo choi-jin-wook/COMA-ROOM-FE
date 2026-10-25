@@ -50,11 +50,37 @@ describe("attendance camera controls", () => {
     await openCamera();
     expect(screen.getByText("1.0배")).toBeInTheDocument();
     expect(screen.getByText("연속 자동 초점")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "카메라 확대" }));
+    fireEvent.change(screen.getByRole("slider", { name: "카메라 줌" }), { target: { value: "1.5" } });
     await screen.findByText("1.5배");
     expect(camera.apply).toHaveBeenCalledWith(expect.objectContaining({
       width: { ideal: 1920 }, height: { ideal: 1080 },
     }));
+  });
+
+  it("applies the last slider value when dragging during a pending zoom", async () => {
+    await openCamera();
+    let finishZoom!: () => void;
+    camera.apply.mockImplementationOnce((constraints) => new Promise<void>((resolve) => {
+      finishZoom = () => {
+        camera.settings = { ...camera.settings, zoom: constraints.advanced[0].zoom };
+        resolve();
+      };
+    }));
+    const slider = screen.getByRole("slider", { name: "카메라 줌" });
+    expect(slider).toHaveAttribute("min", "1");
+    expect(slider).toHaveAttribute("max", "4");
+    expect(slider).toHaveAttribute("step", "0.5");
+    fireEvent.change(slider, { target: { value: "1.5" } });
+    fireEvent.change(slider, { target: { value: "2" } });
+    fireEvent.change(slider, { target: { value: "4" } });
+    expect(camera.apply).toHaveBeenCalledTimes(1);
+    await act(async () => finishZoom());
+    await screen.findByText("4.0배");
+    expect(slider).toHaveValue("4");
+    expect(camera.apply).toHaveBeenCalledTimes(2);
+    fireEvent.change(slider, { target: { value: "1" } });
+    await screen.findByText("1.0배");
+    expect(slider).toHaveValue("1");
   });
 
   it("does not present missing settings as measured values", async () => {
@@ -64,13 +90,13 @@ describe("attendance camera controls", () => {
     fireEvent.click(screen.getByRole("button", { name: "카메라 다시 시작" }));
     await screen.findByText("확인 불가");
     expect(screen.getAllByText("브라우저에서 제공하지 않음")).toHaveLength(2);
-    expect(screen.getByRole("button", { name: "카메라 확대" })).toBeDisabled();
+    expect(screen.getByRole("slider", { name: "카메라 줌" })).toBeDisabled();
   });
 
   it("keeps scanning when zoom is ignored and allows cancellation and restart", async () => {
     camera.apply.mockResolvedValue(undefined);
     await openCamera();
-    fireEvent.click(screen.getByRole("button", { name: "카메라 확대" }));
+    fireEvent.change(screen.getByRole("slider", { name: "카메라 줌" }), { target: { value: "1.5" } });
     await screen.findByText("카메라 줌을 사용할 수 없어 현재 배율로 QR 인식을 계속합니다.");
     expect(screen.getByText("1.0배")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "취소" }));
