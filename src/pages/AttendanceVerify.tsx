@@ -25,6 +25,8 @@ import {
   ChevronLeft,
   Camera,
   AlertCircle,
+  Plus,
+  Minus,
 } from "lucide-react";
 import ComaLogo from "@/components/ComaLogo";
 import { useNavigate } from "react-router-dom";
@@ -49,11 +51,26 @@ import { Button } from "@/components/ui/button";
 // idle: 초기 / scanning: 카메라 활성화 중 / verifying: 서버 인증 중 / verified: 성공 / error: 실패
 type ScanState = "idle" | "scanning" | "verifying" | "verified" | "error";
 
+type CameraZoomRange = {
+  min: number;
+  max: number;
+  step: number;
+};
+
+type ZoomCapabilities = MediaTrackCapabilities & {
+  zoom?: CameraZoomRange;
+};
+
+type ZoomSettings = MediaTrackSettings & {
+  zoom?: number;
+};
+
 const AttendanceVerify = () => {
   const navigate = useNavigate();
 
   // html5-qrcode 인스턴스 참조 (컴포넌트 언마운트 시 정리용)
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const zoomRef = useRef(1);
 
   // 현재 스캔 상태
   const [scanState, setScanState] = useState<ScanState>("idle");
@@ -65,6 +82,10 @@ const AttendanceVerify = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   // 카메라 권한 허용 여부 (null: 아직 확인 안 함)
   const [cameraPermission, setCameraPermission] = useState<boolean | null>(null);
+  const [zoomRange, setZoomRange] = useState<CameraZoomRange | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const [isApplyingZoom, setIsApplyingZoom] = useState(false);
+  const [zoomNotice, setZoomNotice] = useState<string | null>(null);
 
   // 카메라(QR 스캐너) 중지 및 정리
   const stopScanner = async () => {
@@ -81,11 +102,51 @@ const AttendanceVerify = () => {
       }
       scannerRef.current = null;
     }
+    setZoomRange(null);
+    setZoomNotice(null);
+    zoomRef.current = 1;
+    setZoom(1);
+  };
+
+  const changeZoom = async (direction: 1 | -1) => {
+    const scanner = scannerRef.current;
+    if (!scanner || !zoomRange || isApplyingZoom) return;
+
+    const nextZoom = Math.min(
+      zoomRange.max,
+      Math.max(zoomRange.min, zoomRef.current + direction * zoomRange.step)
+    );
+    if (Math.abs(nextZoom - zoomRef.current) < Number.EPSILON) return;
+
+    setIsApplyingZoom(true);
+    try {
+      await scanner.applyVideoConstraints({
+        advanced: [{ zoom: nextZoom }],
+      } as unknown as MediaTrackConstraints);
+      if (scannerRef.current !== scanner) return;
+
+      // 일부 브라우저는 지원하지 않는 제약도 성공으로 반환하므로 실제 배율 확인
+      const appliedZoom = (scanner.getRunningTrackSettings() as ZoomSettings).zoom;
+      if (typeof appliedZoom !== "number" || !Number.isFinite(appliedZoom) || Math.abs(appliedZoom - zoomRef.current) < Number.EPSILON) {
+        setZoomRange(null);
+        setZoomNotice("카메라 줌을 사용할 수 없어 현재 배율로 QR 인식을 계속합니다.");
+        return;
+      }
+      zoomRef.current = appliedZoom;
+      setZoom(appliedZoom);
+    } catch {
+      if (scannerRef.current !== scanner) return;
+      setZoomRange(null);
+      setZoomNotice("카메라 줌을 사용할 수 없어 현재 배율로 QR 인식을 계속합니다.");
+    } finally {
+      setIsApplyingZoom(false);
+    }
   };
 
   // 카메라 시작 및 QR 스캔 활성화
   const startScanner = async () => {
     setErrorMessage(null);
+    setZoomNotice(null);
     setScanState("scanning");
 
     try {
@@ -111,6 +172,36 @@ const AttendanceVerify = () => {
         },
         () => {} // 인식 실패 프레임은 무시
       );
+
+      try {
+        const capabilities = scanner.getRunningTrackCapabilities() as ZoomCapabilities;
+        const settings = scanner.getRunningTrackSettings() as ZoomSettings;
+        const supportedZoom = capabilities.zoom;
+
+        if (
+          supportedZoom &&
+          Number.isFinite(supportedZoom.min) &&
+          Number.isFinite(supportedZoom.max) &&
+          typeof settings.zoom === "number" &&
+          Number.isFinite(settings.zoom) &&
+          supportedZoom.max > supportedZoom.min
+        ) {
+          const step = supportedZoom.step > 0 ? supportedZoom.step : 0.1;
+          const initialZoom = Math.min(
+            supportedZoom.max,
+            Math.max(supportedZoom.min, settings.zoom ?? supportedZoom.min)
+          );
+          setZoomRange({ ...supportedZoom, step });
+          zoomRef.current = initialZoom;
+          setZoom(initialZoom);
+        } else {
+          setZoomRange(null);
+          setZoomNotice("이 브라우저 또는 카메라는 줌을 지원하지 않습니다. 기본 배율로 QR을 인식합니다.");
+        }
+      } catch {
+        setZoomRange(null);
+        setZoomNotice("이 브라우저 또는 카메라는 줌을 지원하지 않습니다. 기본 배율로 QR을 인식합니다.");
+      }
 
       setCameraPermission(true);
     } catch (err: unknown) {
@@ -285,6 +376,33 @@ const AttendanceVerify = () => {
               </div>
             )}
 
+            {scanState === "scanning" && (
+              <div className="absolute right-4 bottom-4 z-20 flex flex-col gap-2">
+                <button
+                  type="button"
+                  aria-label="카메라 확대"
+                  title={zoomRange ? `카메라 확대 (${zoom.toFixed(1)}배)` : "이 기기는 카메라 줌을 지원하지 않습니다"}
+                  disabled={!zoomRange || zoom >= zoomRange.max || isApplyingZoom}
+                  onClick={() => changeZoom(1)}
+                  className="flex h-8 w-8 items-center justify-center rounded-full transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{ backgroundColor: "#F0FDF4", color: "#10B981" }}
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="카메라 축소"
+                  title={zoomRange ? `카메라 축소 (${zoom.toFixed(1)}배)` : "이 기기는 카메라 줌을 지원하지 않습니다"}
+                  disabled={!zoomRange || zoom <= zoomRange.min || isApplyingZoom}
+                  onClick={() => changeZoom(-1)}
+                  className="flex h-8 w-8 items-center justify-center rounded-full transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
+                  style={{ backgroundColor: "#F0FDF4", color: "#10B981" }}
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
             {/* verifying: 서버 인증 중 로딩 오버레이 */}
             {scanState === "verifying" && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-3" style={{ backgroundColor: "rgba(15,76,58,0.85)" }}>
@@ -336,6 +454,12 @@ const AttendanceVerify = () => {
             )}
           </div>
         </div>
+
+        {scanState === "scanning" && zoomNotice && (
+          <p role="status" className="rounded-xl bg-[#F0FDF4] p-3 text-sm text-[#0F4C3A]">
+            {zoomNotice}
+          </p>
+        )}
 
         {/* 에러 메시지 배너 */}
         {errorMessage && (
