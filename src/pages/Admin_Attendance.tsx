@@ -2,15 +2,16 @@
 // 관리자 출석 관리 페이지
 // - 기존 이벤트 선택 + QR 코드 발급으로 출석 세션 시작
 // - 진행 중 세션은 QR 코드를 화면에 표시 (부원이 스캔)
-// - 세션 종료 시 완료 기록으로 저장
+// - 전체 출석 명단 API에서 이벤트별 기록 조회
 // - 유형 필터 / 페이지네이션으로 기록 목록 관리
 // - 기록 삭제 / 상세보기(출석자 명단) 기능
 // - GET /api/event/monthly → 생성된 이벤트 조회
 // - POST /api/admin/event/attendances → QR 코드 발급
+// - GET /api/admin/event/attendances/all → 전체 출석 명단 조회
 // - GET /api/admin/member/manage → 전체/활성 부원 수 조회
 // ===================================================
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -47,19 +48,17 @@ const ACTIVITY_TYPES = [
 type ActivityType = typeof ACTIVITY_TYPES[number]["value"];
 
 interface Attendee {
-  id: number;
+  id: number | null;
   name: string;
   studentId: string;
   grade: string;
-  checkedInAt: string;
 }
 
 interface ApiAttendee {
-  memberId: number;
+  memberId: number | null;
   name: string;
   studentId: string;
   major: string | null;
-  attendedAt: string;
 }
 
 const toAttendees = (items: ApiAttendee[]): Attendee[] => items.map((item) => ({
@@ -67,18 +66,21 @@ const toAttendees = (items: ApiAttendee[]): Attendee[] => items.map((item) => ({
   name: item.name,
   studentId: item.studentId,
   grade: item.major ?? "-",
-  checkedInAt: item.attendedAt?.replace("T", " ").slice(0, 16) ?? "-",
 }));
+
+interface ApiEventAttendance {
+  eventId: number;
+  title: string;
+  attendances: ApiAttendee[];
+}
 
 interface AttendanceRecord {
   id: number;
   title: string;
-  activityType: ActivityType;
-  date: string;
-  time: string;
+  activityType?: ActivityType;
+  date?: string;
+  time?: string;
   attendees: number;
-  duration: number;
-  status: "completed" | "active";
   attendeeList: Attendee[];
 }
 
@@ -102,7 +104,6 @@ const Admin_Attendance = () => {
   const [currentAttendees, setCurrentAttendees] = useState(0);
   // 폼 입력값 - 활동명, 유형, 장소, 날짜
   const [activityName, setActivityName] = useState("");
-  const [activityType, setActivityType] = useState<ActivityType>("정기회의");
   const [location, setLocation] = useState("");
   const [eventDate, setEventDate] = useState<string>(
     new Date().toISOString().split("T")[0]
@@ -112,10 +113,10 @@ const Admin_Attendance = () => {
   const [expirationTime, setExpirationTime] = useState("10");
   const [eventsLoading, setEventsLoading] = useState(true);
   const [eventsError, setEventsError] = useState("");
-  // 세션 시작 시각 (종료 시 소요 시간 계산용)
-  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
-  // 완료된 출석 세션 기록 목록 (클라이언트 측 관리)
+  // 서버에 저장된 이벤트별 출석 명단
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
+  const [recordsLoading, setRecordsLoading] = useState(true);
+  const [recordsError, setRecordsError] = useState("");
   // 유형 필터 선택값
   const [filterType, setFilterType] = useState<ActivityType | "all">("all");
   // 삭제 확인 Dialog 상태
@@ -142,6 +143,36 @@ const Admin_Attendance = () => {
       .catch(() => {});
   }, []);
 
+  const loadAttendanceRecords = useCallback(async () => {
+    setRecordsLoading(true);
+    setRecordsError("");
+    try {
+      const items = await apiFetch<ApiEventAttendance[]>("/api/admin/event/attendances/all");
+      setAttendanceRecords(items.map((item) => {
+        const event = events.find((candidate) => candidate.eventId === item.eventId);
+        const attendeeList = toAttendees(item.attendances);
+        return {
+          id: item.eventId,
+          title: item.title,
+          activityType: event ? ACTIVITY_TYPES.find((type) => type.category === (event.eventCategory ?? event.category))?.value : undefined,
+          date: event?.eventDate?.split("T")[0],
+          time: event?.eventDate?.split("T")[1]?.slice(0, 5),
+          attendees: attendeeList.length,
+          attendeeList,
+        };
+      }));
+      setCurrentPage(1);
+    } catch (error) {
+      setRecordsError(error instanceof Error ? error.message : "출석 기록을 불러오지 못했습니다.");
+    } finally {
+      setRecordsLoading(false);
+    }
+  }, [events]);
+
+  useEffect(() => {
+    if (!eventsLoading) void loadAttendanceRecords();
+  }, [eventsLoading, loadAttendanceRecords]);
+
   useEffect(() => {
     const now = new Date();
     setEventsLoading(true);
@@ -156,10 +187,7 @@ const Admin_Attendance = () => {
     const selected = events.find((event) => String(event.eventId) === eventId);
     if (!selected) return;
 
-    const category = selected.eventCategory ?? selected.category ?? "EVENT";
-    const activity = ACTIVITY_TYPES.find((item) => item.category === category)?.value ?? "기타";
     setActivityName(selected.title);
-    setActivityType(activity as ActivityType);
     setLocation(selected.location ?? "");
     setEventDate(selected.eventDate?.split("T")[0] ?? "");
   };
@@ -167,7 +195,7 @@ const Admin_Attendance = () => {
   useEffect(() => {
     if (!isSessionActive || activeEventId === null) return;
     const refreshAttendance = () => {
-      apiFetch<ApiAttendee[]>(`/api/admin/event/${activeEventId}/attendances`)
+      apiFetch<ApiAttendee[]>(`/api/admin/event/attendances/${activeEventId}`)
         .then((items) => setCurrentAttendees(items.length))
         .catch(() => {});
     };
@@ -212,7 +240,6 @@ const Admin_Attendance = () => {
       setQrCodeId(createdQrCodeId);
       setActiveEventId(selectedEvent.eventId);
       setCurrentAttendees(0);
-      setSessionStartTime(new Date());
       setIsSessionActive(true);
     } catch (error) {
       console.error("출석 생성 실패:", error);
@@ -223,31 +250,9 @@ const Admin_Attendance = () => {
   };
 
   // 출석 세션 종료
-  // - 소요 시간 계산 후 기록을 attendanceRecords에 추가
-  // - 폼 및 세션 상태 초기화
+  // - 서버 목록을 새로 조회한 뒤 폼 및 세션 상태 초기화
   const handleEndSession = async () => {
-    if (sessionStartTime && activityName.trim() && activeEventId !== null) {
-      const now = new Date();
-      const durationMinutes = Math.round(
-        (now.getTime() - sessionStartTime.getTime()) / 60000
-      );
-
-      const attendance = await apiFetch<ApiAttendee[]>(`/api/admin/event/${activeEventId}/attendances`).catch(() => [] as ApiAttendee[]);
-      const attendeeList = toAttendees(attendance);
-      const newRecord: AttendanceRecord = {
-        id: activeEventId,
-        title: activityName,
-        activityType,
-        date: eventDate,
-        time: sessionStartTime.toTimeString().slice(0, 5),
-        attendees: attendeeList.length,
-        duration: durationMinutes || 1,
-        status: "completed",
-        attendeeList,
-      };
-
-      setAttendanceRecords((prev) => [newRecord, ...prev]);
-    }
+    await loadAttendanceRecords();
 
     setIsSessionActive(false);
     setSessionId("");
@@ -255,12 +260,10 @@ const Admin_Attendance = () => {
     setActiveEventId(null);
     setCurrentAttendees(0);
     setActivityName("");
-    setActivityType("정기회의");
     setLocation("");
     setEventDate(new Date().toISOString().split("T")[0]);
     setSelectedEventId("");
     setExpirationTime("10");
-    setSessionStartTime(null);
   };
 
   // 삭제 버튼 클릭 - 삭제 대상 ID 저장 후 확인 Dialog 열기
@@ -292,7 +295,7 @@ const Admin_Attendance = () => {
   };
 
   const refreshSelectedAttendance = async (eventId: number) => {
-    const items = await apiFetch<ApiAttendee[]>(`/api/admin/event/${eventId}/attendances`);
+    const items = await apiFetch<ApiAttendee[]>(`/api/admin/event/attendances/${eventId}`);
     const attendeeList = toAttendees(items);
     setSelectedRecord((current) => current?.id === eventId
       ? { ...current, attendees: attendeeList.length, attendeeList }
@@ -531,7 +534,11 @@ const Admin_Attendance = () => {
           </Select>
         </div>
 
-        {filteredRecords.length === 0 ? (
+        {recordsLoading ? (
+          <div className="rounded-xl p-8 text-center bg-white border border-[#D1FAE5] text-sm text-[#6B7280]">출석 기록을 불러오는 중...</div>
+        ) : recordsError ? (
+          <div className="rounded-xl p-8 text-center bg-white border border-[#D1FAE5] text-sm text-red-600" role="alert">{recordsError}</div>
+        ) : filteredRecords.length === 0 ? (
           <div className="rounded-xl p-8 text-center" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}>
             <p className="text-sm" style={{ color: "#6B7280" }}>
               {filterType === "all" ? "아직 출석 기록이 없습니다" : "해당 유형의 출석 기록이 없습니다"}
@@ -543,11 +550,10 @@ const Admin_Attendance = () => {
               <div key={record.id} className="rounded-xl p-4" style={{ backgroundColor: "#FFFFFF", border: "1px solid #D1FAE5" }}>
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="px-2 py-0.5 rounded text-xs font-medium" style={{ backgroundColor: "#E0E7FF", color: "#4F46E5" }}>
-                      {ACTIVITY_TYPES.find((t) => t.value === record.activityType)?.label || record.activityType}
-                    </span>
+                    {record.activityType && <span className="px-2 py-0.5 rounded text-xs font-medium" style={{ backgroundColor: "#E0E7FF", color: "#4F46E5" }}>
+                      {ACTIVITY_TYPES.find((t) => t.value === record.activityType)?.label}
+                    </span>}
                     <span className="font-bold text-sm" style={{ color: "#0F4C3A" }}>{record.title}</span>
-                    <span className="px-2 py-0.5 rounded text-xs font-medium" style={{ backgroundColor: "#D1FAE5", color: "#10B981" }}>완료</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button onClick={() => handleDetailClick(record)} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: "#FFFFFF", color: "#10B981", border: "1px solid #10B981" }}>
@@ -558,15 +564,11 @@ const Admin_Attendance = () => {
                     </button>
                   </div>
                 </div>
-                <p className="text-sm mb-2" style={{ color: "#6B7280" }}>{record.date} {record.time}</p>
+                {record.date && <p className="text-sm mb-2" style={{ color: "#6B7280" }}>{record.date} {record.time}</p>}
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1">
                     <Users className="w-4 h-4" style={{ color: "#6B7280" }} />
                     <span className="text-sm" style={{ color: "#6B7280" }}>{record.attendees}명</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" style={{ color: "#6B7280" }} />
-                    <span className="text-sm" style={{ color: "#6B7280" }}>{record.duration}분</span>
                   </div>
                 </div>
               </div>
@@ -640,8 +642,7 @@ const Admin_Attendance = () => {
               </button>
             </div>
             <div className="flex items-center gap-4 mt-2">
-              <span className="text-sm" style={{ color: "#6B7280" }}>{selectedRecord?.date} {selectedRecord?.time}</span>
-              <span className="text-sm" style={{ color: "#6B7280" }}>{selectedRecord?.duration}분</span>
+              {selectedRecord?.date && <span className="text-sm" style={{ color: "#6B7280" }}>{selectedRecord.date} {selectedRecord.time}</span>}
             </div>
           </DialogHeader>
 
@@ -682,7 +683,7 @@ const Admin_Attendance = () => {
                 </div>
               ) : (
                 selectedRecord?.attendeeList.map((attendee) => (
-                  <div key={attendee.id} className="rounded-xl p-3 flex items-center justify-between" style={{ backgroundColor: "#F9FAFB" }}>
+                  <div key={`${attendee.id}-${attendee.studentId}`} className="rounded-xl p-3 flex items-center justify-between" style={{ backgroundColor: "#F9FAFB" }}>
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium" style={{ backgroundColor: "#D1FAE5", color: "#10B981" }}>
                         {attendee.name.charAt(0)}
@@ -693,9 +694,7 @@ const Admin_Attendance = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Clock className="w-3 h-3" style={{ color: "#6B7280" }} />
-                      <span className="text-xs" style={{ color: "#6B7280" }}>{attendee.checkedInAt}</span>
-                      <button
+                      {attendee.id !== null && <button
                         onClick={() => handleRemoveAttendance(attendee.id)}
                         disabled={attendanceAdjusting}
                         className="rounded-md p-1 disabled:opacity-50"
@@ -703,7 +702,7 @@ const Admin_Attendance = () => {
                         style={{ backgroundColor: "#FEE2E2", color: "#EF4444" }}
                       >
                         <UserMinus className="h-3.5 w-3.5" />
-                      </button>
+                      </button>}
                     </div>
                   </div>
                 ))
